@@ -1,218 +1,271 @@
-# Help: everything All-in-One Markdown Viewer does
+# Help: what All-in-One Markdown Viewer does, and how to try each feature
 
 > [!TIP]
-> Open this page any time: `Ctrl+Shift+P` → **All-in-One Markdown Viewer: Help (All Features)**. Every command
-> below is in that same list — type a few words of its name.
+> Open this page in VS Code any time: `Ctrl+Shift+P` (Mac: `Cmd+Shift+P`) → type **help** → **All-in-One Markdown
+> Viewer: Help (All Features)**. For a guided tour: **Help: Get Started** → **All-in-One Markdown Viewer**.
 
-The short version: open a `.md` file and press `Ctrl+Alt+V` (`Cmd+Alt+V` on a Mac). Your Markdown becomes a page with a
-clickable outline. Everything else on this page builds on that.
+Every feature below has three parts: **what it does**, **try it** (an example to paste — use the copy button on each
+example), and **what you should see**.
+
+Before you start: open a project folder in VS Code (ideally one that uses git) and create a new file called
+`try-docmap.md` in it. You will paste the examples into that file.
 
 ## Contents
 
-| Area | What it helps with | Section |
+| # | Feature | New in |
 | --- | --- | --- |
-| Read | Turn any Markdown file into a page you can find your way around | [Read](#read) |
-| Trust | See which paragraphs no longer match your code or other docs | [Trust](#trust) |
-| Clean view | Make AI-written Markdown look tidy without changing it | [Clean view](#clean-view) |
-| Plans | Readiness, dashboard, open questions, my items, sign-off | [Plans](#plans) |
-| Changes | See what changed, right on the page | [Changes](#changes) |
-| Docs Inbox | Get through hundreds of Markdown files | [Docs Inbox](#docs-inbox) |
-| Review and AI | Review a doc; use your own AI agent or model | [Review and AI](#review-and-ai) |
-| Write and share | Writing keys, tables, export, browser | [Write and share](#write-and-share) |
+| 1 | [Preview in the same tab](#1-preview-in-the-same-tab) | 0.2 |
+| 2 | [Clean view for AI-written Markdown](#2-clean-view-for-ai-written-markdown) | 3.0 |
+| 3 | [Trust markers](#3-trust-markers) | 3.0 |
+| 4 | [Plan readiness](#4-plan-readiness) | 3.0 |
+| 5 | [Plans Dashboard](#5-plans-dashboard) | 3.0 |
+| 6 | [Open Questions and My Items](#6-open-questions-and-my-items) | 3.0 |
+| 7 | [Compare: what changed, on the page](#7-compare-what-changed-on-the-page) | 3.0 |
+| 8 | [Sign off a version](#8-sign-off-a-version) | 3.0 |
+| 9 | [Docs mentioned in code](#9-docs-mentioned-in-code) | 3.0 |
+| 10 | [Docs Inbox](#10-docs-inbox) | 2.0 |
+| 11 | [Review and your AI agent](#11-review-and-your-ai-agent) | 2.0 |
+| 12 | [AI that uses your own model](#12-ai-that-uses-your-own-model) | 3.0 |
+| 13 | [Tools for your AI agents](#13-tools-for-your-ai-agents) | 3.0 |
+| 14 | [Reading, writing and sharing](#14-reading-writing-and-sharing) | 2.0 |
 
-## Read
+## 1. Preview in the same tab
 
-Step 1: Open any `.md` file.
+**What it does:** turns a Markdown file into a readable page, in the same tab, with a clickable outline on the left.
 
-Step 2: Click **Show Preview** at the top right of the editor, or press `Ctrl+Alt+V` / `Cmd+Alt+V`. The same tab
-becomes the page, at the section you were looking at.
+**Try it:** open any `.md` file and press `Ctrl+Alt+V` (Mac: `Cmd+Alt+V`), or click **Show Preview** at the top
+right of the editor. Press it again to go back to the text.
 
-Step 3: Click a heading in the outline on the left to go to it. Press the same key again to edit.
+**What you should see:** the same tab shows the page, at the section you were looking at. Clicking a heading on the
+left jumps to it. The box at the top (**In short**) sums the file up.
 
-- **Open Preview to the Side:** the page next to your file, following it as you type and scroll.
-- **Open Preview in Browser:** the page in your web browser; linked Markdown files open as pages too.
-- **Always open as a preview:** right-click a Markdown tab → **Reopen Editor With…** → **Configure default editor
-  for '\*.md'…** → **All-in-One Markdown Viewer (preview)**.
+## 2. Clean view for AI-written Markdown
 
-**In the outline:** `/` filters headings · `↑` `↓` move · `←` `→` fold · `Enter` goes there · drag the edge to
-resize · `Ctrl+F` finds text in the page.
+**What it does:** AI tools write Markdown with "**Owner:** …" bullets, "Note:" lines and status words. Clean view
+shows them neatly. **Your file is never changed.**
 
-**Reading tools** (on by default): `s` quick read (first lines only) · `1` `2` `3` `0` show heading levels ·
-reading time per section · structure hints for files without real headings.
+**Try it:** paste this into `try-docmap.md`, then press `Ctrl+Alt+V`:
 
-**Key points** at the top of the page: an **In short** summary, tasks done, decisions and warnings, and what changed
-since you last read the file (**Mark as read** clears it).
+```markdown
+# Payments rollout
 
-**Also:** diagrams (` ```mermaid `), tables, pictures (click to zoom), task lists, note boxes, footnotes; copy
-buttons on code; highlights (select text → **Highlight**); slides (sections between `---` lines → **▶ Slides**);
-your place is remembered per file.
+- **Owner:** Priya
+- **Deadline:** 2026-12-01
+- **Status:** in progress
 
-**Reading look:** **Choose Reading Look (Theme, Text Size, Width)…** — themes VS Code, Paper, GitHub, Night, Focus.
+Note: the old API stays on until every client has moved.
 
-## Trust
+Step 1: Turn on shadow mode.
 
-Markdown written months ago — or by an AI five minutes ago — can be wrong. A marker in the left margin tells you,
-per paragraph:
+Step 2: Compare results for a week.
 
-| Marker | Means | Checked how |
-| --- | --- | --- |
-| ✗ doesn't match | It names a file, function, command, setting or version that is not in your code | Against your repository, on your computer |
-| ⇄ conflicts | Another doc states the same fact differently | Against your other Markdown files |
-| ⚠ may be stale | A file it names changed after the paragraph was written | Git history (trusted folders only) |
-| ↺ superseded | A newer, near-identical doc exists | Docs Inbox |
-| ✓ verified | You checked it | Your own mark |
-
-- **Hover** a marker to read why. **Click** it to mark the paragraph verified or wrong, or to ask your AI agent to
-  verify it against the code.
-- **Hover** any paragraph and click the faint dot to check one that has no marker.
-- Key points count them (**✗ 2 don't match the code**); click the count to jump to the first one.
-- **📄 Mentioned in N docs** appears above a code file your docs talk about — click to open the doc at that line.
-
-Note: editing a paragraph clears your ✓ or ✗ on it, because what you checked is no longer what is written.
-
-## Clean view
-
-On by default. It lays AI-written Markdown out neatly on the page — **the file is never changed**:
-
-- "**Owner:** Priya" bullets → a card · front matter → a header card
-- "Note:", "Warning:", "TL;DR:" lines → note boxes
-- "Step 1:" lines and how-to lists → a stepper
-- status words (done, in progress, blocked) → coloured chips; numbers right-aligned in tables
-- checklists → a progress bar · dates and @people → chips · code → colours
-
-**Show as written** (top of the page) switches it off; **✨ Clean view** switches it back. Optional: setting
-**Heading Numbers** numbers headings 1, 1.1, 1.2. Want the file itself tidied? **Ask my AI agent → Tidy this file's
-formatting**.
-
-## Plans
-
-**Ready N/10** appears on any doc that reads as a plan (by its name, its title, or its contents). It checks ten
-parts: goal, scope, owner, steps, rollout, risks, testing, rollback, timeline, open questions.
-
-Step 1: Click **Ready 7/10** to see which parts are there (click one to go to it) and which are missing.
-
-Step 2: Choose a missing part — or **Fill all gaps** — and the "Make this plan ready" prompt goes to your agent. It
-writes a TODO instead of guessing an owner or a date.
-
-**Plans Dashboard** (also the dashboard icon on the Docs Inbox): every plan as one row.
-
-| Column | Shows |
+| Task | Status |
 | --- | --- |
-| Progress | Tasks done of total |
-| Status | done, in progress, not started, stale, blocked — plus the plan's own `status:` |
-| Ready | The readiness score |
-| Owner | From front matter, "Owner:" lines and @mentions |
-| Next date | The next date in the plan, or ⚠ overdue |
-| Questions · Risks · Decisions | Counts |
+| Shadow mode | done |
+| Load test | in progress |
+| Switch traffic | blocked |
 
-**Plans Dashboard: Sort, Export or Ask My Agent…** sorts it five ways, saves it as Markdown or CSV, or asks your
-agent for a status report of every plan.
+- [x] Write the adapter
+- [ ] Switch traffic
+```
 
-- **Open Questions (Every Doc):** every open question, by file — lines ending in "?", "Question:" lines, items under
-  an "Open questions" heading.
-- **My Items:** open tasks and questions that name you. Set **My Names** (e.g. `Priya`, `@priya`); empty uses
-  git's user name.
-- **Outline badges:** ☐ open tasks, ? questions, ✗ paragraphs to check, beside each heading.
-- **Sign off this version** (the **⋯** menu at the top of the page): writes `signed-off-by: Name date #fingerprint`
-  into the file's front matter and saves. The page shows **✓ Signed off by …**, or **⚠ Changed since … signed off**
-  once the file changes.
-- **Open Decision Log:** every "Decision:" line across your docs on one page.
+**What you should see:**
+- the Owner / Deadline / Status bullets as a neat card
+- "Note:" as a blue note box; Step 1 and Step 2 as numbered steps
+- done, in progress, blocked as coloured labels in the table
+- a progress bar above the checklist ("1 of 2 done")
 
-## Changes
+**Turn it off:** click **Show as written** at the top of the page (click **✨ Clean view** to turn it back on).
 
-**⇆ Compare…** at the top of the page (or **Show Changes on the Page**) marks what changed — on the rendered page,
-not in a code diff:
+## 3. Trust markers
 
-| Compare with | When to use it |
+**What it does:** marks paragraphs you should not trust: they name files or commands that are not in your code,
+disagree with another doc, or may be out of date. You see it in the left margin, next to the paragraph.
+
+**Try it:** add this paragraph to `try-docmap.md`, **save**, and open the preview:
+
+```markdown
+The settings live in `src/old-settings-file.ts` and you run `npm run deploy-everything`.
+```
+
+**What you should see:**
+- a red **✗** in the margin next to that paragraph
+- hover it: "Mentions `src/old-settings-file.ts`, which is not in the repository" (and the same for the command, if
+  your project has a `package.json`)
+- at the top: **✗ 1 doesn't match the code**
+
+**Then:** click the ✗ → **Mark as verified** (it turns into ✓), or **Verify this paragraph against the code** to
+ask your AI agent. Hover any other paragraph and click the faint dot to check that one.
+
+| Marker | Means |
 | --- | --- |
-| The version I last read | "What changed since I looked?" |
-| The saved file | See your unsaved edits |
-| The last commit | Before you commit |
-| A week ago · a tag · a git version | Catch up after time away; review a release |
+| ✗ | It names something that is not in your code |
+| ⇄ | Another doc says something different (e.g. "Port: 8080" here, "Port: 3000" there) |
+| ⚠ | A file it names changed after this paragraph was written (needs git) |
+| ↺ | A newer, almost identical doc exists |
+| ✓ | You checked it and marked it true |
 
-New words are underlined, removed words struck through, added paragraphs get a green bar, removed paragraphs come
-back struck through. The bar at the top counts them, offers **Summarise** (your agent explains the changes) and
-**Stop comparing**.
+## 4. Plan readiness
 
-## Docs Inbox
+**What it does:** for any doc that looks like a plan, checks ten things a plan needs: goal, scope, owner, steps,
+rollout, risks, testing, rollback, timeline, open questions.
 
-In the Explorer sidebar. Every Markdown file in your folder, sorted like an email inbox:
+**Try it:** rename your file to `try-docmap-plan.md` (any name with "plan" works), or use the Payments rollout
+example above, and open the preview.
 
-- **Changed since you read** · **New — not opened yet** · **Worth reading first**
-- **Plans in progress** · **Possible duplicates** (with compare) · **Probably out of date**
-- **Doubtful — check before you trust** (paragraphs that don't match the code, or conflict)
-- **Agent instruction files** (AGENTS.md, CLAUDE.md, Copilot and Cursor rules) · **Decision log**
+**What you should see:** a chip at the top like **◔ Ready 3/10**. Hover it to see what's missing. Click it:
+- parts the plan has → click to go to that line
+- parts that are missing → click one (or **Fill all gaps**) and a prompt goes to your AI agent to write them
 
-Right-click or use the icons to mark as read, ask your agent about a group, move to an archive folder, or compare
-duplicates. Setting **Stale Days** decides "out of date" (90 days).
+## 5. Plans Dashboard
 
-## Review and AI
+**What it does:** one table of every plan in your project: how far along, status, readiness, owner, next date,
+open questions, risks.
 
-docmap has **no AI of its own and no servers**. It works with yours, at the level you choose:
+**Try it:** `Ctrl+Shift+P` → **Plans Dashboard** (or the dashboard icon at the top of the Docs Inbox).
 
-| Level | What happens | Default |
-| --- | --- | --- |
-| 0 — hand over | docmap writes the prompt; it opens in Copilot Chat, or is copied for Claude Code, Cursor, Antigravity… | on |
-| 1 — answer with my model | Questions that only need an answer are answered by your model in VS Code, on a page | off |
-| 2 — tools for agents | Your agent can ask docmap for plans, readiness, questions, outlines, doc-vs-code problems | off |
+**What you should see:** a page with totals at the top, one row per plan (click a name to open it), and a **Needs
+attention** list (overdue, blocked, no owner, low readiness).
 
-**Review a doc:** click **⋯** beside a heading → approve, ask a question, or request a change. **Send My Review to My
-AI Agent** turns your marks into one prompt.
+**More:** `Ctrl+Shift+P` → **Plans Dashboard: Sort, Export or Ask My Agent…** — sort it, save it as Markdown or a
+CSV for a spreadsheet, or ask your agent for a status report of every plan.
 
-**Ask my AI agent** (the **⋯** at the top, or a heading's **⋯**): explain, challenge, find risks, make tasks, write
-tests, summarise, brief me on changes, continue the plan, make slides or a one-pager, fix the structure, tidy the
-formatting, make this plan ready… **Add Markdown Prompts to This Project** saves them as Copilot prompt files and
-Claude Code commands.
+## 6. Open Questions and My Items
 
-**Level 1 — Answer With My Model** (setting): summarise, explain, challenge, find risks, make tasks, verify a
-paragraph and summarise changes are answered on a page by your own model (Copilot, or any model VS Code offers;
-setting **AI: Model** picks one). docmap asks before the first send and names what it sends. Prompts that change
-files still go to your agent.
+**What it does:** collects every open question, and everything assigned to you, from all your docs.
 
-**Level 2 — AI: Tools** (setting): five tools — plans dashboard, open questions, plan readiness, doc outline, check a
-doc against the repo.
+**Try it:** add these lines to `try-docmap.md` and save:
 
-Step 1: Turn on **AI: Tools**.
+```markdown
+## Open questions
 
-Step 2: In Copilot Chat (agent mode), type `#docmapPlans`, `#docmapReadiness`… For Claude Code, Cursor and others,
-run **Set Up docmap Tools for My Agent (MCP)…** and follow the copied instructions.
+- Do we keep the v1 endpoint?
+- [ ] Ask @priya about the rollout date
+```
 
-Note: the tools run on your computer, only read Markdown files in your project, and never go online.
+Then `Ctrl+Shift+P` → **Open Questions (Every Doc)**. For My Items, first set your name: Settings → search
+**docmap my names** → add `@priya` (or your own name) → `Ctrl+Shift+P` → **My Items**.
 
-## Write and share
+**What you should see:** a page listing the questions by file with line numbers; My Items lists the task that names
+@priya. In the preview's outline, the "Open questions" heading shows small counts: **☐1 ?1** (one open task, one question).
 
-- `Ctrl+B` bold · `Ctrl+I` italic (VS Code only; your agent keeps it in Cursor and others) · `Alt+S` strikethrough
-- **Enter** continues lists and checklists · **Format Table** lines up columns · **Insert / Update Table of
-  Contents**
-- **Export as HTML…** (one file that works anywhere) · **Export as PDF (Print)…**
-- **Open Preview in Browser** to share or print the page
+## 7. Compare: what changed, on the page
 
-Setting **Writing Helpers** turns the keys off (they also step aside when Markdown All in One is installed).
+**What it does:** shows what changed in a doc right on the page — new words underlined, removed words crossed out.
+
+**Try it:** open the preview of a file that is committed in git. Change a few words in the text (don't save). Click
+**⇆ Compare…** at the top of the page → **The last commit**.
+
+**What you should see:** a bar "**Changes since the last commit:** 1 changed"; your new words underlined in green,
+the old ones crossed out in red. **Stop comparing** clears it.
+
+**Other choices:** the version I last read · the saved file · a week ago · a tag · any git version. **✨ Summarise**
+asks your AI agent to explain the changes.
+
+## 8. Sign off a version
+
+**What it does:** records "I approve this version" in the file itself, and warns when the file changes later.
+
+**Try it:** in the preview, click **⋯ Review / ask my AI agent** at the top → **Sign off this version…** → type your
+name.
+
+**What you should see:** the file gets a line `signed-off-by: Your Name 2026-11-16 #…` at the top, and the page
+shows **✓ Signed off by Your Name**. Change any word and save: it becomes **⚠ Changed since Your Name signed off**.
+
+## 9. Docs mentioned in code
+
+**What it does:** in a code file, shows which docs talk about it.
+
+**Try it:** in `try-docmap.md`, mention a real file of your project in backticks, e.g. `` `src/index.ts` ``, and save.
+Open that code file.
+
+**What you should see:** a small line at the top of the code file: **📄 Mentioned in 1 doc**. Click it to open the doc
+at that line. (Turn off: setting **Code Lens**.)
+
+## 10. Docs Inbox
+
+**What it does:** sorts every Markdown file in your project like an email inbox.
+
+**Try it:** open the Explorer (left sidebar) → **Docs Inbox** section.
+
+**What you should see:** groups such as **Changed since you read**, **New — not opened yet**, **Worth reading
+first**, **Plans in progress**, **Possible duplicates**, **Probably out of date**, **Doubtful — check before you
+trust**. The icons at the top open the Plans Dashboard, the Decision log and this help.
+
+## 11. Review and your AI agent
+
+**What it does:** lets you review a doc section by section, and hands good prompts to the AI agent you already use
+(Copilot Chat in VS Code; in Cursor, Antigravity and others the prompt is copied for you to paste).
+
+**Try it:** in the preview, click the **⋯** next to a heading → **Ask a question…** → type a question. Then
+`Ctrl+Shift+P` → **Send My Review to My AI Agent**.
+
+**What you should see:** your agent receives one prompt with every section you marked and your notes. The **⋯** at
+the top of the page offers ready prompts: explain, challenge, find risks, turn into tasks, summarise, make slides,
+tidy the formatting, make this plan ready…
+
+## 12. AI that uses your own model
+
+**What it does:** instead of handing a prompt to your agent, your **own** model in VS Code (e.g. GitHub Copilot)
+writes the answer on a page next to your doc. **Off by default.** docmap has no AI and no servers of its own.
+
+**Try it** (needs GitHub Copilot in VS Code): Settings → search **docmap answer with my model** → turn it on. In the
+preview, **⋯ Review / ask my AI agent** → **Ask my AI agent about this file…** → **Summarise this file**.
+
+**What you should see:** VS Code may ask once whether docmap can use your model, and docmap asks once what it will
+send. Then a page **AI — Summarise this file** fills in, naming the model that answered. Prompts that change files
+(like "Turn this into a checklist") still go to your agent.
+
+## 13. Tools for your AI agents
+
+**What it does:** your AI agent can ask docmap for your plans, their readiness, open questions, a doc's outline, and
+docs that don't match the code. **Off by default.** Runs on your computer, only reads.
+
+**Try it in Copilot:** Settings → search **docmap ai tools** → turn on. Open Copilot Chat in **Agent** mode and type:
+`#docmapPlans which plans are overdue?`
+
+**Try it in Claude Code, Cursor and others:** `Ctrl+Shift+P` → **Set Up docmap Tools for My Agent (MCP)…** → pick
+your agent → follow the copied instructions. Then ask your agent: "use docmap to list my plans".
+
+**What you should see:** the agent answers using docmap's table of your plans.
+
+## 14. Reading, writing and sharing
+
+| Want to | Do |
+| --- | --- |
+| Read faster | `s` shows only the first line of each section; `1` `2` `3` `0` show heading levels |
+| Find in the outline · in the text | `/` · `Ctrl+F` |
+| Change the look | `Ctrl+Shift+P` → **Choose Reading Look** (themes, text size, width) |
+| Highlight | Select text in the page → **Highlight** |
+| Slides | Separate sections with a line `---` → **▶ Slides** |
+| Bold · italic · strike | `Ctrl+B` · `Ctrl+I` · `Alt+S` in the editor |
+| Tables · contents | **Format Table** · **Insert / Update Table of Contents** |
+| Share | **Open Preview in Browser** · **Export as HTML…** · **Export as PDF (Print)…** |
+| Number headings | Setting **Heading Numbers** |
 
 ## Settings
 
-Search **docmap** in Settings.
+Settings → search **docmap**. The ones you may want to change:
 
-| Setting | Default |
-| --- | --- |
-| Reading Tools · Remember Place · Diagrams · Writing Helpers · Clean View · Code Lens | On |
-| Heading Numbers · AI: Answer With My Model · AI: Tools | Off |
-| Theme · Font Scale · Line Width | VS Code · 1 · normal |
-| Stale Days | 90 |
-| Agent Target | auto (chat when there is one, else clipboard) |
-| My Names · AI: Model | empty |
-| Large File Bytes · Update Debounce Ms · Infer Headings | 5 MB · 300 ms · auto |
+| Setting | What it does | Default |
+| --- | --- | --- |
+| Clean View | Neat layout for AI-written Markdown | On |
+| Code Lens | "📄 Mentioned in N docs" in code files | On |
+| My Names | Your names and @handles, for My Items and sign-off | git user name |
+| AI: Answer With My Model | Your own model answers on a page | Off |
+| AI: Tools | Tools for your AI agents | Off |
+| Agent Target | Where prompts go: chat when there is one, or always the clipboard | auto |
+| Theme · Font Scale · Line Width | Reading look | VS Code · 1 · normal |
 
 ## Privacy
 
 - No accounts, no tracking, no servers.
-- Stored on your computer only: your reading place, marks, highlights, checks, and each file's text as you last read
-  it (for Compare).
-- Git is only read, and only in folders you trust.
-- Document text leaves your computer only with **Answer With My Model** on, to your own model, after you agree.
+- What docmap remembers stays on your computer.
+- Your document text leaves your computer only with **AI: Answer With My Model** on, to your own model, after you
+  agree.
 
-## Problems or ideas
+## Something not working?
 
-Warning: after updating, if the Docs Inbox is missing, run **Developer: Reload Window**.
+Warning: right after an update, if the Docs Inbox is missing, run `Ctrl+Shift+P` → **Developer: Reload Window**.
 
-Open an issue: https://github.com/kish21/docmap-media/issues
+Report a problem: https://github.com/kish21/docmap-media/issues
