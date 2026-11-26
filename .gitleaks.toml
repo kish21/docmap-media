@@ -1,0 +1,9 @@
+title = "docmap gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Documented placeholders only — a real token still fails."
+regexes = ['''CHANGE_ME__[A-Z_]+__CHANGE_ME''']
+paths = ['''\.env\.example$''']

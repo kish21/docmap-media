@@ -1,0 +1,191 @@
+/* Doc Atlas graph page (owner call 2026-11-24). Colours only from tokens.css, which follows the editor theme
+   (ADR-0003). */
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+}
+#atlas {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) 1fr;
+  height: 100vh;
+}
+aside {
+  border-right: 1px solid var(--border);
+  background: var(--sidebar);
+  overflow: auto;
+  padding: 12px;
+}
+aside h1 {
+  font-size: 1.15em;
+  margin: 0 0 2px;
+}
+aside h2 {
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-foreground);
+  margin: 14px 0 4px;
+}
+.sub {
+  color: var(--muted-foreground);
+  margin: 0 0 10px;
+  font-size: 0.9em;
+}
+input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 5px 8px;
+  border: 1px solid var(--input-border);
+  background: var(--input);
+  color: var(--input-foreground);
+  border-radius: 4px;
+}
+input:focus,
+button:focus-visible,
+.node:focus-visible {
+  outline: 1px solid var(--ring);
+  outline-offset: 1px;
+}
+button.item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: none;
+  color: var(--foreground);
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+}
+button.item:hover {
+  background: var(--hover);
+}
+button.item.on {
+  background: var(--active);
+  color: var(--active-foreground);
+}
+main {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.top {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.crumbs {
+  font-size: 0.9em;
+  color: var(--muted-foreground);
+}
+button.crumb {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--primary);
+  cursor: pointer;
+}
+.title {
+  font-size: 1.3em;
+  font-weight: 600;
+  margin: 2px 0;
+}
+.what {
+  color: var(--muted-foreground);
+}
+.actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+}
+button.action {
+  border: 1px solid var(--input-border);
+  background: var(--input);
+  color: var(--foreground);
+  padding: 3px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+}
+button.action:hover {
+  background: var(--hover);
+}
+/* opened from a doc: the feature list folded, the doc's map takes the whole panel */
+#atlas.solo {
+  grid-template-columns: 1fr;
+}
+#atlas.solo aside {
+  display: none;
+}
+button.list-toggle {
+  float: right;
+  margin-left: 8px;
+}
+svg {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+.node {
+  cursor: pointer;
+}
+.node rect {
+  stroke-width: 1.5;
+  fill: var(--background);
+}
+.node text {
+  fill: var(--foreground);
+  font-size: 12px;
+  pointer-events: none;
+}
+.node.doc rect {
+  stroke: var(--primary);
+}
+.node.feature rect {
+  stroke: var(--changed);
+}
+.node.code rect {
+  stroke: var(--added);
+}
+.node.me rect {
+  stroke: var(--ring);
+  stroke-width: 2.5;
+}
+.node.more {
+  cursor: default;
+}
+.node.more rect {
+  stroke: var(--muted-foreground);
+  stroke-dasharray: 4 3;
+}
+.node:hover rect {
+  fill: var(--hover);
+}
+.edge {
+  stroke: var(--muted-foreground);
+  stroke-width: 1.2;
+  fill: none;
+}
+.code-edge {
+  stroke-dasharray: 4 3;
+}
+.arrowhead {
+  fill: var(--muted-foreground);
+}
+.caption {
+  fill: var(--muted-foreground);
+  font-size: 12px;
+}
+.hint {
+  position: absolute;
+  left: 16px;
+  bottom: 8px;
+  font-size: 0.85em;
+  color: var(--muted-foreground);
+}

@@ -1,0 +1,1666 @@
+/* docmap panel styles. Tokens only (tokens.css) — never a raw colour or an off-scale size here. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* `hidden` must always win — a class that sets display (e.g. .outline-row's flex) would otherwise override it */
+[hidden] {
+  display: none !important;
+}
+
+:focus-visible {
+  outline: 1px solid var(--ring);
+  outline-offset: 1px;
+}
+
+/* ---------- layout: outline | document ---------- */
+.map-root {
+  container-type: inline-size;
+}
+
+.map {
+  display: grid;
+  /* outline | divider (no width of its own: its grab area overlaps both sides) | document */
+  grid-template-columns: var(--outline-w, var(--outline-width)) 0 minmax(0, 1fr);
+  height: 100vh;
+  position: relative;
+}
+
+/* ---------- the outline pane: drag to resize, hide / show (0.0.20) ---------- */
+.outline-splitter {
+  position: relative;
+  z-index: 2;
+  outline: none;
+}
+.outline-splitter::before {
+  content: "";
+  position: absolute;
+  inset: 0 -3px;
+  cursor: col-resize;
+}
+.outline-splitter:hover::before,
+.outline-splitter:focus-visible::before,
+.map[data-resizing] .outline-splitter::before {
+  background: var(--ring);
+}
+.map[data-resizing] {
+  cursor: col-resize;
+  user-select: none;
+}
+.outline-show {
+  display: none;
+}
+@container (min-width: 601px) {
+  .map[data-outline-collapsed] {
+    grid-template-columns: 0 0 minmax(0, 1fr);
+  }
+  .map[data-outline-collapsed] > .outline {
+    visibility: hidden;
+    overflow: hidden;
+  }
+  /* hidden, but kept in its grid column: taking it out would slide the document into the divider's empty column */
+  .map[data-outline-collapsed] > .outline-splitter {
+    visibility: hidden;
+    pointer-events: none;
+  }
+  /* #42 (owner pick 2026-11-21): a small list icon pinned in its own left margin — stays in view while the page
+     scrolls and never covers text (the labelled "› Contents" button sat over tables and headings) */
+  .map[data-outline-collapsed] > .outline-show {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: var(--space-2);
+    left: var(--space-1);
+    z-index: 3;
+    width: 28px;
+    min-height: 28px;
+    padding: 0;
+    color: var(--foreground);
+    background: var(--background);
+  }
+  /* the document makes room for that margin, so no line of text ever runs under it */
+  .map[data-outline-collapsed] > .document {
+    padding-left: calc(28px + 2 * var(--space-1));
+  }
+}
+
+.outline {
+  background: var(--sidebar);
+  color: var(--sidebar-foreground);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.outline-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.outline-header {
+  padding: var(--space-3) var(--space-3) var(--space-2);
+  display: grid;
+  gap: var(--space-2);
+}
+
+/* the browser snapshot: the file name with the light / dark switch beside it */
+.outline-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.outline-label {
+  font-size: var(--text-caption);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+  margin: 0;
+}
+
+.outline-toggle {
+  display: none;
+}
+
+.filter {
+  width: 100%;
+  font: inherit;
+  font-size: var(--text-sm);
+  padding: var(--space-1) var(--space-2);
+  background: var(--input);
+  color: var(--input-foreground);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius);
+}
+.filter:focus-visible {
+  outline-offset: -1px;
+}
+
+.filter-status {
+  font-size: var(--text-sm);
+  color: var(--muted-foreground);
+  margin: 0;
+}
+.filter-status:empty {
+  display: none;
+}
+
+.outline-tree {
+  overflow-y: auto;
+  padding: 0 0 var(--space-4);
+  margin: 0;
+  flex: 1;
+  min-height: 0;
+}
+.outline-tree ol {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.outline-empty {
+  margin: 0;
+  padding: var(--space-1) var(--space-3);
+  color: var(--muted-foreground);
+}
+
+/* ---------- edge states: never a blank panel (DESIGN.md §5) ---------- */
+.state {
+  max-width: var(--reading-width);
+  margin: 0 auto;
+  padding: var(--space-8) var(--space-6);
+  font-size: var(--text-base);
+  line-height: 1.6;
+}
+.state-title {
+  font-size: var(--text-xl);
+  font-weight: 650;
+  margin: 0 0 var(--space-2);
+}
+.state p {
+  margin: 0 0 var(--space-4);
+  color: var(--muted-foreground);
+}
+.state-action {
+  font: inherit;
+  font-size: var(--text-sm);
+  min-height: 28px;
+  padding: var(--space-1) var(--space-3);
+  color: var(--active-foreground);
+  background: var(--active);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.state-action:hover {
+  background: var(--hover);
+}
+
+.outline-row {
+  display: flex;
+  align-items: center;
+  min-height: 28px;
+  padding-left: calc(var(--space-3) * var(--depth, 0) + var(--space-1));
+  border-left: 2px solid transparent;
+}
+.outline-row:hover {
+  background: var(--hover);
+}
+.outline-row[data-current] {
+  background: var(--active);
+  color: var(--active-foreground);
+  border-left-color: var(--primary);
+}
+
+.twisty {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  background: none;
+  border: 0;
+  padding: 0;
+  border-radius: var(--radius);
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font: inherit;
+}
+.twisty svg {
+  width: 12px;
+  height: 12px;
+}
+.twisty[aria-expanded="false"] svg {
+  transform: rotate(-90deg);
+}
+.twisty-spacer {
+  flex: none;
+  width: 20px;
+}
+
+.outline-link {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-1) var(--space-2) var(--space-1) var(--space-1);
+  color: inherit;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.outline-row[data-current] .outline-link {
+  font-weight: 600;
+}
+/* an inferred heading (a line that acts as one): italic, so it reads as a hint, not the author's structure */
+.outline-row.inferred .outline-link {
+  font-style: italic;
+}
+.outline-size {
+  flex: none;
+  padding-right: var(--space-2);
+  font-size: var(--text-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-foreground);
+}
+.outline-row[data-current] .outline-size {
+  color: inherit;
+}
+
+/* reading tools: skim and fold-to-level */
+.reading-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.fold-levels {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.fold-label {
+  font-size: var(--text-caption);
+  color: var(--muted-foreground);
+  margin-right: var(--space-1);
+}
+.skim-toggle,
+.fold-level,
+.theme-toggle,
+.outline-hide,
+.outline-show {
+  font: inherit;
+  font-size: var(--text-caption);
+  min-height: 24px;
+  min-width: 24px;
+  padding: 0 var(--space-2);
+  color: var(--sidebar-foreground);
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.skim-toggle:hover,
+.fold-level:hover,
+.theme-toggle:hover,
+.outline-hide:hover,
+.outline-show:hover {
+  background: var(--hover);
+}
+.skim-toggle[aria-pressed="true"] {
+  background: var(--active);
+  color: var(--active-foreground);
+  border-color: var(--primary);
+  font-weight: 600;
+}
+.skim-toggle:focus-visible,
+.fold-level:focus-visible {
+  outline: 1px solid var(--ring);
+  outline-offset: 1px;
+}
+.outline-link mark {
+  background: none;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* ---------- the document ---------- */
+.document {
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* the document uses the whole width it is given (owner call, 0.0.18): on a wide monitor the text fills the page,
+   with side space that grows with the window instead of a fixed narrow column */
+.prose {
+  margin: 0 auto;
+  padding: var(--space-6) clamp(var(--space-8), 4vw, 6rem) var(--space-8);
+  font-size: var(--text-base);
+  line-height: 1.6;
+}
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  margin: 1.6em 0 0.5em;
+  scroll-margin-top: var(--space-4);
+}
+.prose h1 {
+  font-size: var(--text-3xl);
+  letter-spacing: -0.02em;
+  margin-top: 0;
+}
+.prose h2 {
+  font-size: var(--text-2xl);
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--border);
+}
+.prose h3 {
+  font-size: var(--text-xl);
+}
+.prose h4,
+.prose h5,
+.prose h6 {
+  font-size: var(--text-lg);
+}
+.prose a {
+  color: var(--primary);
+}
+/* the browser snapshot: a link to another file, kept visible but inert (it opens in VS Code only). Owner report
+   2026-11-24: the dotted underline made titles hard to read — plain text now, no line; the tooltip says why */
+.prose a[data-href] {
+  color: inherit;
+  text-decoration: none;
+  cursor: default;
+}
+.prose code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--code);
+  padding: 0.1em 0.3em;
+  border-radius: var(--radius);
+}
+.prose pre {
+  background: var(--code);
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  overflow-x: auto;
+}
+.prose pre code {
+  background: none;
+  padding: 0;
+}
+.prose ul,
+.prose ol {
+  padding-left: 1.4em;
+}
+.prose li + li {
+  margin-top: 0.25em;
+}
+.prose em {
+  color: var(--muted-foreground);
+}
+/* a table never pushes the page sideways: at most the column's width, scrolling inside itself when it must */
+.prose table {
+  border-collapse: collapse;
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+}
+/* a value in a cell stays whole — a colour value, "--surface-0", a path — never split at a hyphen or mid-word (0.2.1,
+   owner report): on a narrow window the table scrolls sideways inside itself instead */
+.prose :is(th, td) code {
+  white-space: nowrap;
+}
+.prose :is(th, td) {
+  min-width: 7ch;
+}
+.prose th,
+.prose td {
+  border: 1px solid var(--border);
+  padding: var(--space-1) var(--space-2);
+  text-align: left;
+}
+.prose .align-left {
+  text-align: left;
+}
+.prose .align-center {
+  text-align: center;
+}
+.prose .align-right {
+  text-align: right;
+}
+.prose .image-alt {
+  color: var(--muted-foreground);
+  font-style: italic;
+}
+.prose img {
+  max-width: 100%;
+  height: auto; /* an <img width height> keeps its shape when narrowed */
+}
+.prose hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+/*
+ * The 1 MB guardrail (#Vision): laying out every paragraph of a huge document was the dominant cost (~600 ms of
+ * ~900 ms, measured). Off-screen blocks skip layout until they come near the viewport; headings are left out of
+ * this so jumping to them and "you are here" always use their real positions.
+ */
+.prose > :not(h1, h2, h3, h4, h5, h6) {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 3lh;
+}
+
+/* collapsed section: its content is hidden in the document too */
+.prose [data-collapsed-content] {
+  display: none;
+}
+
+/* skim mode: a section shows its heading and first block; the rest waits until the reader opens it */
+.prose [data-skim-hidden] {
+  display: none;
+}
+.prose [data-skim-lead] {
+  cursor: pointer;
+}
+.prose [data-skim-lead]::after {
+  content: attr(data-skim-lead);
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  font-style: normal;
+  color: var(--muted-foreground);
+}
+.prose :is(h1, h2, h3, h4, h5, h6)[data-skim-lead]::after {
+  font-weight: normal;
+  letter-spacing: normal;
+}
+.prose [data-skim-lead]:hover::after {
+  color: var(--primary);
+  text-decoration: underline;
+}
+
+/* GitHub extras: task lists, callouts, footnotes */
+.prose .task-list-item {
+  list-style: none;
+}
+.prose .task-checkbox {
+  margin: 0 var(--space-1) 0 0;
+  vertical-align: middle;
+}
+.prose .task-checkbox:not([disabled]),
+.prose .dm-status-edit {
+  cursor: pointer;
+}
+.prose .dm-status-edit:hover,
+.prose .dm-status-edit:focus-visible {
+  outline: 1px solid var(--ring);
+  outline-offset: 1px;
+}
+.prose .callout {
+  margin-left: 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--primary);
+  background: var(--code);
+  border-radius: var(--radius);
+}
+.prose .callout > :last-child {
+  margin-bottom: 0;
+}
+.prose .callout-title {
+  margin: 0 0 var(--space-1);
+  font-weight: 600;
+  color: var(--primary);
+}
+.prose .callout-warning {
+  border-left-color: var(--warning);
+}
+.prose .callout-warning .callout-title {
+  color: var(--warning);
+}
+.prose .callout-caution {
+  border-left-color: var(--danger);
+}
+.prose .callout-caution .callout-title {
+  color: var(--danger);
+}
+.prose .footnote-ref a {
+  text-decoration: none;
+}
+.prose .footnote-heading {
+  font-weight: 600;
+}
+.prose .footnotes {
+  font-size: var(--text-sm);
+  color: var(--muted-foreground);
+}
+
+/* ---------- narrow panel: outline folds above the document ---------- */
+@container (max-width: 600px) {
+  .map {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  /* narrow: the outline stacks above the text with its own toggle — no divider, no hide button */
+  .outline-splitter,
+  .outline-hide {
+    display: none;
+  }
+  .outline {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    max-height: 50vh;
+    overflow: hidden;
+  }
+  .outline-toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 44px;
+    width: 100%;
+    background: none;
+    border: 0;
+    color: inherit;
+    font: inherit;
+    font-size: var(--text-sm);
+    padding: 0 var(--space-3);
+    text-align: left;
+    cursor: pointer;
+  }
+  .outline-toggle svg {
+    width: 12px;
+    height: 12px;
+    flex: none;
+  }
+  .outline-toggle-label {
+    flex: none;
+    font-weight: 600;
+  }
+  .outline-current {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--muted-foreground);
+  }
+  .outline-current:not(:empty)::before {
+    content: "· ";
+  }
+  .outline-toggle[aria-expanded="true"] .outline-current {
+    display: none;
+  }
+  .outline-toggle[aria-expanded="false"] svg {
+    transform: rotate(-90deg);
+  }
+  .outline[data-folded] .outline-body {
+    display: none;
+  }
+  .outline-row {
+    min-height: 44px;
+  }
+  .prose {
+    padding: var(--space-4);
+  }
+}
+
+/* ---------- print: the document alone, all of it ---------- */
+@media print {
+  .outline,
+  .outline-splitter,
+  .outline-show {
+    display: none;
+  }
+  .map {
+    display: block;
+    height: auto;
+  }
+  .document {
+    overflow: visible;
+  }
+  .prose > * {
+    content-visibility: visible;
+  }
+  /* a printed copy is the whole document: folded and skimmed-away parts too, without the "click to read" hints */
+  .prose [data-collapsed-content],
+  .prose [data-skim-hidden] {
+    display: revert;
+  }
+  .prose [data-skim-lead]::after {
+    content: none;
+  }
+  .prose :is(h1, h2, h3, h4, h5, h6) {
+    break-after: avoid;
+  }
+  .prose :is(pre, table, blockquote, img) {
+    break-inside: avoid;
+  }
+}
+
+/* ---------- safe HTML tags (0.0.8): details, kbd ---------- */
+.prose details {
+  margin: 0 0 var(--space-4);
+}
+.prose summary {
+  cursor: pointer;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+.prose kbd {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  padding: 0 var(--space-1);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: var(--radius);
+  background: var(--code);
+}
+
+/* ---------- diagrams (0.0.8): a ```mermaid block drawn as an SVG ---------- */
+.prose pre.mermaid-diagram {
+  background: transparent;
+  border: 0;
+  white-space: normal;
+  text-align: center;
+}
+.prose pre.mermaid-diagram svg {
+  max-width: 100%;
+  height: auto;
+}
+.prose .diagram-note {
+  margin-bottom: 0.25em;
+  color: var(--muted-foreground);
+  font-size: 0.9em;
+}
+
+/* ---------- 2.0: reading look ---------- */
+.prose {
+  font-family: var(--font-reading, var(--font-sans));
+}
+/* text size: only when the reader changed it (zoom, even at 1, upsets Chromium's hit testing of positioned markers) */
+body[data-scaled] .prose {
+  zoom: var(--reading-scale, 1);
+}
+body[data-line-width="narrow"] .prose {
+  max-width: 68ch;
+}
+body[data-line-width="wide"] .prose {
+  max-width: 110ch;
+}
+body[data-line-width="full"] .prose {
+  padding-inline: var(--space-6);
+}
+/* focus: one calm column — the outline steps aside (› brings it back), generous line height */
+body[data-reading-theme="focus"] .prose {
+  max-width: 70ch;
+  line-height: 1.75;
+}
+body[data-reading-theme="focus"] .keypoints {
+  display: none;
+}
+
+/* ---------- 2.0: key points strip ---------- */
+/* owner report 2026-11-17: one quiet line — what is true about the file (left), what you can do (right) */
+.keypoints {
+  margin: 0 0 var(--space-6);
+  padding: 0 0 var(--space-3);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+}
+.kp-tldr {
+  margin: 0 0 var(--space-3);
+  padding-left: var(--space-3);
+  border-left: 3px solid var(--primary);
+}
+.kp-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2) var(--space-4);
+}
+.kp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+  min-width: 0;
+}
+.kp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+.kp-chip {
+  color: var(--muted-foreground);
+}
+/* the Clean view switch: a track and a knob, filled when on */
+.kp-switch {
+  position: relative;
+  display: inline-block;
+  width: 26px;
+  height: 14px;
+  margin-right: var(--space-2);
+  vertical-align: -2px;
+  border: 1px solid var(--input-border);
+  border-radius: 7px;
+  background: var(--input);
+}
+.kp-switch::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--muted-foreground);
+}
+.kp-clean[aria-checked="true"] .kp-switch {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+.kp-clean[aria-checked="true"] .kp-switch::after {
+  left: 13px;
+  background: var(--background);
+}
+.kp-changed {
+  color: var(--changed);
+  font-weight: 600;
+}
+.kp-read,
+.kp-menu,
+.kp-atlas,
+.kp-source,
+.kp-slides,
+.slide-bar button,
+.dm-copy,
+.dm-hl-button {
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--foreground);
+  background: var(--input);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius);
+  padding: 2px var(--space-2);
+  cursor: pointer;
+}
+.kp-read:hover,
+.kp-menu:hover,
+.kp-atlas:hover,
+.kp-source:hover,
+.kp-slides:hover,
+.slide-bar button:hover,
+.dm-copy:hover,
+.dm-hl-button:hover {
+  background: var(--hover);
+}
+:is(
+  .kp-read,
+  .kp-menu,
+  .kp-atlas,
+  .kp-source,
+  .kp-slides,
+  .slide-bar button,
+  .dm-copy,
+  .dm-hl-button,
+  .section-menu
+):focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+/* ---------- 2.0: headings — changed, review marks, ⋯ menu ---------- */
+.dm-badge {
+  display: inline-block;
+  margin-left: var(--space-2);
+  padding: 0 var(--space-2);
+  border: 1px solid currentColor;
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  vertical-align: middle;
+  letter-spacing: 0.02em;
+}
+.dm-changed {
+  color: var(--changed);
+}
+.dm-review-approve {
+  color: var(--primary);
+}
+.dm-review-question,
+.dm-review-change {
+  color: var(--warning);
+}
+.prose :is(h1, h2, h3, h4, h5, h6)[data-changed] {
+  box-shadow: inset 3px 0 0 var(--changed);
+  padding-left: var(--space-2);
+}
+.section-menu {
+  margin-left: var(--space-2);
+  padding: 0 var(--space-2);
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--muted-foreground);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  cursor: pointer;
+  vertical-align: middle;
+  opacity: 0;
+}
+.prose :is(h1, h2, h3, h4, h5, h6):hover .section-menu,
+.section-menu:focus-visible,
+.prose [data-review] .section-menu {
+  opacity: 1;
+}
+.section-menu:hover {
+  border-color: var(--border);
+  color: var(--foreground);
+}
+@media (hover: none) {
+  .section-menu {
+    opacity: 1;
+  }
+}
+.outline-badge {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  margin-left: var(--space-1);
+  border-radius: 50%;
+  background: var(--changed);
+}
+.outline-badge-review-approve {
+  background: var(--primary);
+}
+.outline-badge-review-question,
+.outline-badge-review-change {
+  background: var(--warning);
+}
+
+/* ---------- 2.0: highlights ---------- */
+mark.dm-hl {
+  background: var(--highlight);
+  color: inherit;
+  border-bottom: 2px solid oklch(0.75 0.16 95);
+  cursor: pointer;
+}
+/* 2026-11-22: Highlight and Comment side by side over the selection */
+.dm-hl-bar {
+  position: fixed;
+  z-index: 10;
+  display: flex;
+  gap: var(--space-1);
+}
+/* a commented highlight: dashed underline and a small pencil after it */
+mark.dm-hl-note {
+  border-bottom-style: dashed;
+}
+mark.dm-hl-note::after {
+  content: "✎";
+  margin-left: 2px;
+  font-size: var(--text-caption);
+  color: var(--primary);
+}
+
+/* ---------- 2026-11-22: clickable code names, ▶ Terminal ---------- */
+.prose code.dm-coderef {
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+.prose code.dm-coderef:hover {
+  color: var(--primary);
+}
+.prose code.dm-coderef:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+.dm-term {
+  position: absolute;
+  top: var(--space-1);
+  right: calc(var(--space-1) + 5em);
+  opacity: 0;
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--foreground);
+  background: var(--input);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius);
+  padding: 2px var(--space-2);
+  cursor: pointer;
+}
+.dm-term:hover {
+  background: var(--hover);
+}
+.prose pre:hover .dm-term,
+.dm-term:focus-visible {
+  opacity: 1;
+}
+.dm-term:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+/* ---------- 2.0: copy buttons, progress bar ---------- */
+.prose pre {
+  position: relative;
+}
+.dm-copy {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  opacity: 0;
+}
+.prose pre:hover .dm-copy,
+.dm-copy:focus-visible {
+  opacity: 1;
+}
+.dm-progress {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 2px;
+  margin-bottom: -2px;
+  background: var(--primary);
+  transform-origin: left;
+  transform: scaleX(var(--progress, 0));
+}
+
+/* ---------- 2.0: slides ---------- */
+.map[data-slides] {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+.map[data-slides] > .outline,
+.map[data-slides] .outline-splitter,
+.map[data-slides] .keypoints {
+  display: none;
+}
+.map[data-slides] .prose {
+  max-width: 900px;
+  font-size: 1.35em;
+  padding-top: var(--space-8);
+  padding-bottom: 96px;
+}
+[data-slide-hidden] {
+  display: none !important;
+}
+.slide-bar {
+  position: sticky;
+  bottom: var(--space-4);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-3);
+  width: max-content;
+  margin: 0 auto;
+  padding: var(--space-2) var(--space-3);
+  background: var(--sidebar);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+}
+
+@media print {
+  .keypoints,
+  .section-menu,
+  .dm-copy,
+  .dm-progress,
+  .dm-hl-button,
+  .slide-bar {
+    display: none !important;
+  }
+}
+
+/* ---------- 3.0: trust markers (icon + colour + words in the hover — never colour alone) ---------- */
+.prose {
+  position: relative;
+}
+.prose > .dm-has-mark {
+  position: relative;
+  /* content-visibility clips what sticks out of a block (the 1 MB guardrail rule above): the few marked blocks opt
+     out, so their margin marker can be seen and clicked */
+  content-visibility: visible;
+}
+.dm-mark {
+  position: absolute;
+  left: -32px;
+  top: 2px;
+  z-index: 3;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  background: var(--background);
+  font: 700 12px / 20px var(--font-sans);
+  text-align: center;
+  cursor: pointer;
+  color: var(--muted-foreground);
+}
+.dm-mark:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+.dm-mark-mismatch,
+.dm-mark-wrong {
+  color: var(--danger);
+}
+.dm-mark-conflict,
+.dm-mark-stale {
+  color: var(--warning);
+}
+.dm-mark-verified {
+  color: var(--primary);
+}
+.dm-mark-ghost {
+  opacity: 0.5;
+  border-style: dashed;
+}
+/* a thin bar in the margin beside a doubtful block (a few pixels clear of the text) */
+.prose > [data-trust="mismatch"]::after,
+.prose > [data-trust="wrong"]::after,
+.prose > [data-trust="conflict"]::after,
+.prose > [data-trust="stale"]::after {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 2px;
+  bottom: 2px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--warning);
+}
+.prose > [data-trust="mismatch"]::after,
+.prose > [data-trust="wrong"]::after {
+  background: var(--danger);
+}
+/* status items you can click: plain coloured text (no box), underlined on hover — buttons live on the right */
+.kp-trust {
+  font: inherit;
+  font-size: var(--text-sm);
+  background: none;
+  border: 0;
+  border-radius: var(--radius);
+  padding: 0;
+  cursor: pointer;
+}
+.kp-trust:hover {
+  text-decoration: underline;
+}
+.kp-trust-mismatch,
+.kp-trust-wrong {
+  color: var(--danger);
+}
+.kp-trust-conflict,
+.kp-trust-stale {
+  color: var(--warning);
+}
+.kp-verified {
+  color: var(--primary);
+}
+.kp-trust:focus-visible {
+  outline: 2px solid var(--ring);
+}
+@media print {
+  .dm-mark {
+    display: none !important;
+  }
+}
+
+/* ---------- 3.0 Clean view ---------- */
+.prose .dm-kv,
+.prose .dm-fm {
+  display: grid;
+  grid-template-columns: minmax(8rem, max-content) 1fr;
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.prose .dm-kv dt,
+.prose .dm-fm dt {
+  color: var(--muted-foreground);
+  font-weight: 600;
+}
+.prose .dm-kv dd,
+.prose .dm-fm dd {
+  margin: 0;
+}
+.prose .dm-fm {
+  border-left: 3px solid var(--primary);
+}
+.prose ol.dm-steps {
+  list-style: none;
+  counter-reset: dm-step;
+  padding-left: 0;
+}
+.prose ol.dm-steps > li {
+  counter-increment: dm-step;
+  position: relative;
+  padding: 0 0 var(--space-4) 2.75rem;
+  margin: 0;
+}
+.prose ol.dm-steps > li::before {
+  content: counter(dm-step);
+  position: absolute;
+  left: 0;
+  top: -1px;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  border: 2px solid var(--primary);
+  color: var(--primary);
+  font-weight: 700;
+  font-size: var(--text-sm);
+  display: grid;
+  place-items: center;
+}
+.prose ol.dm-steps > li:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: calc(0.875rem - 1px);
+  top: 1.85rem;
+  bottom: 0.15rem;
+  width: 2px;
+  background: var(--border);
+}
+.prose .dm-overbold strong,
+.prose .dm-overbold b {
+  font-weight: inherit;
+}
+.prose .dm-overbold > strong:first-of-type,
+.prose .dm-overbold > b:first-of-type {
+  font-weight: 700;
+}
+.prose .dm-status {
+  display: inline-block;
+  padding: 0 var(--space-2);
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap; /* "in progress" stays one label, never split over two lines */
+}
+.prose .dm-status-done {
+  color: var(--primary);
+}
+.prose .dm-status-progress,
+.prose .dm-status-risk {
+  color: var(--warning);
+}
+.prose .dm-status-blocked {
+  color: var(--danger);
+}
+.prose .dm-status-todo {
+  color: var(--muted-foreground);
+}
+.prose .dm-progressline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.prose .dm-progressline span {
+  --done: 0; /* set per list from the script */
+  flex: 0 0 12rem;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(to right, var(--primary) calc(var(--done) * 100%), var(--border) 0);
+}
+.prose .dm-progressline small {
+  color: var(--muted-foreground);
+}
+.prose table th {
+  position: sticky;
+  top: 0;
+  background: var(--background);
+}
+.prose table tbody tr:nth-child(even) {
+  background: var(--hover);
+}
+.prose td.dm-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.prose ul.dm-cols {
+  columns: 2;
+  column-gap: var(--space-8);
+}
+.prose .dm-chip {
+  display: inline-block;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius);
+  background: var(--hover);
+  font-size: 0.95em;
+  white-space: nowrap; /* a date or @name is never split at its hyphen */
+}
+.prose .dm-person {
+  color: var(--primary);
+}
+.prose .dm-figure {
+  margin: var(--space-4) 0;
+}
+.prose .dm-figure img {
+  cursor: zoom-in;
+}
+.prose .dm-figure figcaption {
+  color: var(--muted-foreground);
+  font-size: var(--text-sm);
+  margin-top: var(--space-1);
+}
+.dm-zoom {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: color-mix(in oklch, var(--background) 92%, transparent);
+  display: grid;
+  place-items: center;
+  cursor: zoom-out;
+}
+.dm-zoom img {
+  max-width: 94vw;
+  max-height: 94vh;
+}
+.prose .dm-hnum {
+  color: var(--muted-foreground);
+  margin-right: var(--space-1);
+}
+.prose .dm-hlink {
+  margin-left: var(--space-2);
+  font: inherit;
+  font-size: var(--text-caption);
+  color: var(--muted-foreground);
+  background: none;
+  border: 0;
+  cursor: pointer;
+  opacity: 0;
+  vertical-align: middle;
+}
+.prose :is(h1, h2, h3, h4, h5, h6):hover .dm-hlink,
+.prose .dm-hlink:focus-visible {
+  opacity: 1;
+}
+.kp-clean {
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--foreground);
+  background: var(--input);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius);
+  padding: 2px var(--space-2);
+  cursor: pointer;
+}
+.kp-clean:hover,
+.kp-compare:hover {
+  background: var(--hover);
+}
+.kp-clean:focus-visible {
+  outline: 2px solid var(--ring);
+}
+/* syntax colours: from the theme's own palette where VS Code provides one */
+.prose .tk-comment {
+  color: var(--vscode-editorCodeLens-foreground, var(--muted-foreground));
+  font-style: italic;
+}
+.prose .tk-string {
+  color: var(--vscode-debugTokenExpression-string, var(--warning));
+}
+.prose .tk-number {
+  color: var(--vscode-debugTokenExpression-number, var(--primary));
+}
+.prose .tk-keyword {
+  color: var(--vscode-debugTokenExpression-name, var(--primary));
+  font-weight: 600;
+}
+.prose .tk-function {
+  color: var(--vscode-symbolIcon-functionForeground, var(--foreground));
+}
+/* a checklist's progress line goes wherever its list goes: folded or skimmed away together */
+.prose > .dm-progressline:has(+ [data-collapsed-content]),
+.prose > .dm-progressline:has(+ [data-skim-hidden]),
+.prose > .dm-progressline:has(+ [data-slide-hidden]) {
+  display: none;
+}
+
+/* ---------- 3.0 Rendered redline ---------- */
+.dm-rl-bar {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--background);
+  border: 1px solid var(--changed);
+  border-radius: var(--radius);
+  font-size: var(--text-sm);
+}
+.dm-rl-bar button {
+  font: inherit;
+  color: var(--foreground);
+  background: var(--input);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius);
+  padding: 1px var(--space-2);
+  cursor: pointer;
+}
+.dm-rl-bar button:hover {
+  background: var(--hover);
+}
+.dm-rl-bar button:focus-visible,
+.kp-compare:focus-visible {
+  outline: 2px solid var(--ring);
+}
+.kp-compare {
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--foreground);
+  background: var(--input);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius);
+  padding: 2px var(--space-2);
+  cursor: pointer;
+}
+.prose > [data-redline] {
+  content-visibility: visible;
+  box-shadow: -6px 0 0 -3px var(--changed);
+}
+.prose > [data-redline="added"] {
+  box-shadow: -6px 0 0 -3px var(--added);
+  background: var(--added-fill);
+}
+.prose > [data-redline="removed"] {
+  box-shadow: -6px 0 0 -3px var(--removed);
+  background: var(--removed-fill);
+  text-decoration: line-through;
+  opacity: 0.8;
+}
+.prose ins.dm-ins {
+  text-decoration: underline;
+  text-decoration-color: var(--added);
+  text-decoration-thickness: 2px;
+  background: var(--added-fill);
+}
+.prose del.dm-del {
+  text-decoration: line-through;
+  text-decoration-color: var(--removed);
+  background: var(--removed-fill);
+}
+@media print {
+  .dm-rl-bar button {
+    display: none;
+  }
+}
+
+/* ---------- 3.0 outline counts, sign-off ---------- */
+.outline-counts {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: 4px;
+  flex: none;
+  font-size: var(--text-caption);
+  color: var(--muted-foreground);
+}
+.outline-count-doubts {
+  color: var(--danger);
+}
+.outline-count-questions {
+  color: var(--warning);
+}
+.kp-signed {
+  color: var(--primary);
+}
+.kp-signed-stale {
+  color: var(--warning);
+  font-weight: 600;
+}
+
+/* ---------- easy reading (2026-11-24): "Where this stands" on a long doc ---------- */
+.dm-standing {
+  margin: 0 0 var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--sidebar);
+  font-family: var(--font-sans);
+  /* owner report 2026-11-24: the small blue timeline was hard to read — body size, plain text colour */
+  font-size: var(--text-base);
+  line-height: 1.45;
+}
+/* links inside the box read as text (the reader's eye rests on words, not on a wall of blue); underline on hover */
+.prose .dm-standing a.dm-st-go {
+  color: var(--foreground);
+  text-decoration: none;
+}
+.prose .dm-standing a.dm-st-go:hover,
+.prose .dm-standing a.dm-st-go:focus-visible {
+  color: var(--primary);
+  text-decoration: underline;
+}
+/* the doc's own long Status paragraph, while the box shows it folded */
+.prose [data-dm-status-moved] {
+  display: none;
+}
+.dm-st-head {
+  display: flex;
+  gap: var(--space-3);
+  align-items: baseline;
+  justify-content: space-between;
+}
+.prose .dm-st-atlas {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--primary);
+  font: inherit;
+  cursor: pointer;
+}
+.prose .dm-st-atlas:focus-visible {
+  outline: 1px solid var(--ring);
+}
+.prose .dm-standing .dm-st-title {
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  border: 0;
+  font-size: var(--text-lg);
+}
+.dm-st-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: var(--space-2);
+  border-radius: 50%;
+  background: var(--muted-foreground);
+  vertical-align: 1px;
+}
+.dm-st-built .dm-st-dot {
+  background: var(--added);
+}
+.dm-st-decided .dm-st-dot {
+  background: var(--primary);
+}
+.dm-st-draft .dm-st-dot,
+.dm-st-changed .dm-st-dot {
+  background: var(--warning);
+}
+.prose ol.dm-st-line {
+  display: flex;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+  border-top: 2px solid var(--border);
+}
+.prose ol.dm-st-line > li {
+  flex: 1;
+  margin: -5px 0 0;
+  line-height: 1.4;
+}
+.prose .dm-st-line .dm-st-dot {
+  display: block;
+  width: 10px;
+  height: 10px;
+  margin: 0 0 var(--space-1);
+}
+.prose .dm-st-when {
+  display: block;
+  color: var(--muted-foreground);
+}
+.prose .dm-st-line strong {
+  display: block;
+}
+.prose table.dm-st-parts {
+  width: 100%;
+  margin: 0 0 var(--space-2);
+  border: 0;
+}
+.prose table.dm-st-parts td {
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+.dm-st-meta {
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}
+.prose table.dm-st-parts td:first-child {
+  white-space: nowrap;
+}
+.prose .dm-standing a.dm-st-rec {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--muted-foreground);
+  font-size: var(--text-sm);
+  text-decoration: none;
+}
+.prose .dm-standing a.dm-st-rec:hover,
+.prose .dm-standing a.dm-st-rec:focus-visible {
+  color: var(--primary);
+  border-color: var(--primary);
+}
+.prose .dm-st-warn {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-1) var(--space-2);
+  border-left: 3px solid var(--warning);
+}
+.dm-st-status {
+  margin-top: var(--space-2);
+  color: var(--muted-foreground);
+}
+.dm-st-status summary {
+  cursor: pointer;
+}
+/* folded "until-found": the browser hides it with content-visibility, which needs a box that is not inline */
+.prose .dm-more[hidden="until-found"] {
+  display: inline-block;
+}
+.prose .dm-more-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--primary);
+  font: inherit;
+  cursor: pointer;
+}
+.prose .dm-more-btn:focus-visible {
+  outline: 1px solid var(--ring);
+}
+.dm-peek {
+  position: fixed;
+  z-index: 20;
+  max-width: min(680px, calc(100vw - 16px));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--sidebar);
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+}
+.dm-peek-head,
+.dm-peek-hint {
+  padding: var(--space-1) var(--space-2);
+  color: var(--muted-foreground);
+}
+.dm-peek-head {
+  border-bottom: 1px solid var(--border);
+}
+.dm-peek-hint {
+  border-top: 1px solid var(--border);
+}
+.dm-peek pre {
+  margin: 0;
+  padding: var(--space-1) 0;
+  overflow: auto;
+  max-height: 300px;
+  background: var(--code);
+  font-family: var(--font-mono);
+}
+.dm-peek-row {
+  display: block;
+  padding: 0 var(--space-2);
+  white-space: pre;
+}
+.dm-peek-hit {
+  background: var(--active);
+}
+.dm-peek-n {
+  display: inline-block;
+  min-width: 4ch;
+  margin-right: var(--space-3);
+  color: var(--muted-foreground);
+  text-align: right;
+}
+.dm-st-chip {
+  margin-left: var(--space-3);
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  font-weight: normal;
+  color: var(--muted-foreground);
+  white-space: nowrap;
+}

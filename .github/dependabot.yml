@@ -1,0 +1,29 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      vscode-test-tooling:
+        patterns: ["@vscode/test-cli", "@vscode/test-electron", "@types/mocha"]
+      vscode-api:
+        patterns: ["@types/vscode", "@vscode/vsce"]
+      markdown:
+        patterns: ["markdown-it"]
+      build-and-lint:
+        patterns: ["esbuild", "typescript", "@biomejs/biome", "vitest"]
+    ignore:
+      # @types/vscode must not be newer than engines.vscode (the oldest VS Code docmap supports), or vsce refuses to
+      # package. Raise both together, on purpose, when the minimum VS Code is raised.
+      - dependency-name: "@types/vscode"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # @types/node follows the Node inside VS Code's extension host, not the newest Node: newer types would let code
+      # use APIs that are not there at runtime.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

@@ -1,0 +1,79 @@
+name: Release (.vsix)
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish to VS Code Marketplace and Open VSX (requires VSCE_PAT / OVSX_PAT secrets)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install (exact lockfile)
+        run: npm ci
+      - name: Dependency vulnerabilities (fail on any known CVE)
+        run: npm audit --audit-level=low
+      - name: Secret scan (whole history)
+        run: |
+          go install github.com/zricethezav/gitleaks/v8@v8.30.1
+          "$(go env GOPATH)/bin/gitleaks" git --redact --no-banner
+      - name: Full checks (typecheck, lint, unit tests, build)
+        run: npm run check
+      - name: Design tokens resolve at runtime
+        run: CHROMIUM_PATH=/usr/bin/google-chrome npm run check:tokens
+      - name: Panel in a real browser
+        run: CHROMIUM_PATH=/usr/bin/google-chrome npm run test:browser
+      - name: Integration tests inside real VS Code
+        run: xvfb-run -a npm run test:integration
+      - name: Package .vsix and verify shipped file allowlist
+        run: |
+          npx vsce ls --no-dependencies | tee "$RUNNER_TEMP/vsix-files.txt"
+          if grep -vE '^(dist/(extension|webview|atlas)\.js(\.map)?|dist/mcp\.js|dist/(tokens|styles|atlas)\.css|package\.json|README\.md|HELP\.md|LICENSE|CHANGELOG\.md|dist/mermaid\.js|media/docmap-icons\.woff|media/walkthrough/[a-z]+\.md|media/icon\.png)$' "$RUNNER_TEMP/vsix-files.txt"; then
+            echo "Unexpected file in the .vsix (above)"; exit 1
+          fi
+          npx vsce package --no-dependencies
+          sha256sum *.vsix | tee SHA256SUMS.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: docmap-release-vsix
+          path: |
+            *.vsix
+            SHA256SUMS.txt
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          gh release create "$TAG" *.vsix SHA256SUMS.txt \
+            --title "$TAG" \
+            --generate-notes
+      - name: Publish to VS Code Marketplace
+        if: (startsWith(github.ref, 'refs/tags/v') || inputs.publish == true) && secrets.VSCE_PAT != ''
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: npx vsce publish --no-dependencies --packagePath *.vsix
+      - name: Publish to Open VSX
+        if: (startsWith(github.ref, 'refs/tags/v') || inputs.publish == true) && secrets.OVSX_PAT != ''
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: npx --yes ovsx@1.2.0 publish --no-dependencies *.vsix

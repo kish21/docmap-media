@@ -1,0 +1,1080 @@
+{
+  "name": "markdown-as-web-page",
+  "displayName": "All-in-One Markdown Viewer",
+  "description": "Your AI wrote 200 Markdown files — read the 10 that matter. Same-tab preview with a clickable table of contents, a Docs Inbox (changed, duplicates, out of date), review AI plans and send it to your own agent, themes, highlights, export. Free; collects nothing.",
+  "version": "3.2.1",
+  "publisher": "kish21",
+  "license": "MIT",
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kish21/markdown-docmap"
+  },
+  "bugs": {
+    "url": "https://github.com/kish21/markdown-docmap/issues"
+  },
+  "engines": {
+    "vscode": "^1.100.0",
+    "node": ">=22"
+  },
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true
+    },
+    "virtualWorkspaces": false
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "markdown",
+    "markdown viewer",
+    "markdown preview",
+    "md viewer",
+    "md preview",
+    "readme",
+    "table of contents",
+    "toc",
+    "outline",
+    "live preview",
+    "preview same tab",
+    "all in one",
+    "mermaid",
+    "documentation"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onLanguage:markdown"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "docmap.help",
+        "title": "Help (All Features)",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(question)"
+      },
+      {
+        "command": "docmap.openMap",
+        "title": "Open Preview to the Side",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(docmap-map-side)"
+      },
+      {
+        "command": "docmap.openMapHere",
+        "title": "Show Preview (in This Tab)",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(docmap-map-here)"
+      },
+      {
+        "command": "docmap.showSource",
+        "title": "Show Source (in This Tab)",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(docmap-show-source)"
+      },
+      {
+        "command": "docmap.openInBrowser",
+        "title": "Open Preview in Browser",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(docmap-map-browser)"
+      },
+      {
+        "command": "docmap.refreshFolderMap",
+        "title": "Refresh Markdown Files",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "docmap.openMapAt",
+        "title": "Open Preview at Heading",
+        "category": "All-in-One Markdown Viewer"
+      },
+      {
+        "command": "docmap.askAgent",
+        "title": "Ask My AI Agent About This File…",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "docmap.sendReview",
+        "title": "Send My Review to My AI Agent",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(send)"
+      },
+      {
+        "command": "docmap.addPrompts",
+        "title": "Add Markdown Prompts to This Project (Copilot, Claude Code)",
+        "category": "All-in-One Markdown Viewer"
+      },
+      {
+        "command": "docmap.exportHtml",
+        "title": "Export as HTML…",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(file-code)"
+      },
+      {
+        "command": "docmap.exportPdf",
+        "title": "Export as PDF (Print)…",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(file-pdf)"
+      },
+      {
+        "command": "docmap.chooseLook",
+        "title": "Choose Reading Look (Theme, Text Size, Width)…",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(symbol-color)"
+      },
+      {
+        "command": "docmap.decisionLog",
+        "title": "Open Decision Log",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(law)"
+      },
+      {
+        "command": "docmap.compare",
+        "title": "Show Changes on the Page (Compare With…)",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "docmap.home",
+        "title": "Home (What's Going On in This Project)",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(home)"
+      },
+      {
+        "command": "docmap.plansDashboard",
+        "title": "Plans Dashboard",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(dashboard)"
+      },
+      {
+        "command": "docmap.newDocFromTemplate",
+        "title": "New Doc from Template…",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(new-file)"
+      },
+      {
+        "command": "docmap.newDocHere",
+        "title": "New Doc from Template Here…",
+        "category": "All-in-One Markdown Viewer"
+      },
+      {
+        "command": "docmap.whatCanItDo",
+        "title": "What Can docmap Do? (Every Command)",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(compass)"
+      },
+      {
+        "command": "docmap.compareWithStandard",
+        "title": "Compare with a Standard Format…",
+        "category": "All-in-One Markdown Viewer"
+      },
+      {
+        "command": "docmap.checkDesign",
+        "title": "Does the Code Still Match This Doc?",
+        "category": "All-in-One Markdown Viewer"
+      },
+      {
+        "command": "docmap.whereToStart",
+        "title": "Where Do I Start? (Reading Order for This Project)",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(milestone)"
+      },
+      {
+        "command": "docmap.clearSavedData",
+        "title": "Clear docmap's Saved Data…",
+        "category": "All-in-One Markdown Viewer"
+      },
+      {
+        "command": "docmap.writeDocMap",
+        "title": "Write Doc Map for Agents (AGENTS.md / CLAUDE.md)",
+        "category": "All-in-One Markdown Viewer"
+      },
+      {
+        "command": "docmap.addRulePointers",
+        "title": "Point Other AI Tools to AGENTS.md…",
+        "category": "All-in-One Markdown Viewer"
+      },
+      {
+        "command": "docmap.searchDocs",
+        "title": "Search All Docs…",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(search)"
+      },
+      {
+        "command": "docmap.docAtlas",
+        "title": "Doc Atlas (Your Features)",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(type-hierarchy)"
+      },
+      {
+        "command": "docmap.openQuestions",
+        "title": "Open Questions (Every Doc)",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(question)"
+      },
+      {
+        "command": "docmap.myItems",
+        "title": "My Items (Tasks and Questions Naming Me)",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(account)"
+      },
+      {
+        "command": "docmap.showMentions",
+        "title": "Docs That Mention This File",
+        "category": "All-in-One Markdown Viewer"
+      },
+      {
+        "command": "docmap.plansMenu",
+        "title": "Plans Dashboard: Sort, Export or Ask My Agent…",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(list-filter)"
+      },
+      {
+        "command": "docmap.setupAgentTools",
+        "title": "Set Up docmap Tools for My Agent (MCP)…",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(plug)"
+      },
+      {
+        "command": "docmap.inbox.refresh",
+        "title": "Refresh Docs Inbox",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "docmap.inbox.markRead",
+        "title": "Mark as Read",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(check)"
+      },
+      {
+        "command": "docmap.inbox.askAgent",
+        "title": "Ask My AI Agent About These…",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "docmap.inbox.archive",
+        "title": "Move to Archive Folder",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(archive)"
+      },
+      {
+        "command": "docmap.inbox.compare",
+        "title": "Compare with the First Duplicate",
+        "category": "All-in-One Markdown Viewer",
+        "icon": "$(diff)"
+      },
+      {
+        "command": "docmap.bold",
+        "title": "Toggle Bold",
+        "category": "All-in-One Markdown Viewer"
+      },
+      {
+        "command": "docmap.italic",
+        "title": "Toggle Italic",
+        "category": "All-in-One Markdown Viewer"
+      },
+      {
+        "command": "docmap.strikethrough",
+        "title": "Toggle Strikethrough",
+        "category": "All-in-One Markdown Viewer"
+      },
+      {
+        "command": "docmap.onEnter",
+        "title": "Continue List",
+        "category": "All-in-One Markdown Viewer"
+      },
+      {
+        "command": "docmap.formatTable",
+        "title": "Format Table",
+        "category": "All-in-One Markdown Viewer"
+      },
+      {
+        "command": "docmap.updateToc",
+        "title": "Insert / Update Table of Contents",
+        "category": "All-in-One Markdown Viewer"
+      }
+    ],
+    "languageModelTools": [
+      {
+        "name": "docmap_plans",
+        "displayName": "docmap: Plans dashboard",
+        "toolReferenceName": "docmapPlans",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(dashboard)",
+        "userDescription": "Every plan in the workspace's Markdown docs as one table: progress, status, owners, next date or overdue, open questions, risks, decisions, last changed; plus what needs attention.",
+        "modelDescription": "Every plan in the workspace's Markdown docs as one table: progress, status, owners, next date or overdue, open questions, risks, decisions, last changed; plus what needs attention.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "when": "config.docmap.ai.tools"
+      },
+      {
+        "name": "docmap_open_questions",
+        "displayName": "docmap: Open questions",
+        "toolReferenceName": "docmapQuestions",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(question)",
+        "userDescription": "Every open question in the workspace's Markdown docs, by file, with line numbers and who they name.",
+        "modelDescription": "Every open question in the workspace's Markdown docs, by file, with line numbers and who they name.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "when": "config.docmap.ai.tools"
+      },
+      {
+        "name": "docmap_outline",
+        "displayName": "docmap: Doc outline",
+        "toolReferenceName": "docmapOutline",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(list-tree)",
+        "userDescription": "A Markdown file's headings with levels and line numbers, plus its open tasks and questions — read this before reading a long doc.",
+        "modelDescription": "A Markdown file's headings with levels and line numbers, plus its open tasks and questions — read this before reading a long doc.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "file": {
+              "type": "string",
+              "description": "Workspace-relative path of the Markdown file"
+            }
+          },
+          "required": [
+            "file"
+          ]
+        },
+        "when": "config.docmap.ai.tools"
+      },
+      {
+        "name": "docmap_check_doc",
+        "displayName": "docmap: Check a doc against the repo",
+        "toolReferenceName": "docmapCheckDoc",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(warning)",
+        "userDescription": "Files, folders and paths a Markdown doc names in `code` that do not exist in the repository — places where the doc no longer matches the code.",
+        "modelDescription": "Files, folders and paths a Markdown doc names in `code` that do not exist in the repository — places where the doc no longer matches the code.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "file": {
+              "type": "string",
+              "description": "Workspace-relative path of the Markdown file"
+            }
+          },
+          "required": [
+            "file"
+          ]
+        },
+        "when": "config.docmap.ai.tools"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "docmap.openMap",
+          "when": "(resourceLangId == markdown && activeCustomEditorId != 'docmap.page') || activeWebviewPanelId == 'docmap.map'",
+          "group": "navigation@100"
+        },
+        {
+          "command": "docmap.openMapHere",
+          "when": "(resourceLangId == markdown && activeCustomEditorId != 'docmap.page') || activeWebviewPanelId == 'docmap.map'",
+          "group": "navigation@101"
+        },
+        {
+          "command": "docmap.showSource",
+          "when": "activeCustomEditorId == 'docmap.page'",
+          "group": "navigation@101"
+        },
+        {
+          "command": "docmap.openInBrowser",
+          "when": "resourceLangId == markdown || activeWebviewPanelId == 'docmap.map'",
+          "group": "2_docmap@0"
+        },
+        {
+          "command": "docmap.askAgent",
+          "when": "resourceLangId == markdown || activeWebviewPanelId == 'docmap.map'",
+          "group": "1_docmap@1"
+        },
+        {
+          "command": "docmap.sendReview",
+          "when": "activeCustomEditorId == 'docmap.page' || activeWebviewPanelId == 'docmap.map'",
+          "group": "1_docmap@2"
+        },
+        {
+          "command": "docmap.chooseLook",
+          "when": "resourceLangId == markdown || activeWebviewPanelId == 'docmap.map'",
+          "group": "1_docmap@3"
+        },
+        {
+          "command": "docmap.exportHtml",
+          "when": "resourceLangId == markdown || activeWebviewPanelId == 'docmap.map'",
+          "group": "2_docmap@1"
+        },
+        {
+          "command": "docmap.exportPdf",
+          "when": "resourceLangId == markdown || activeWebviewPanelId == 'docmap.map'",
+          "group": "2_docmap@2"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "docmap.newDocHere",
+          "when": "false"
+        },
+        {
+          "command": "docmap.compareWithStandard",
+          "when": "config.docmap.showAllCommands && (resourceLangId == markdown || activeCustomEditorId == 'docmap.page' || activeWebviewPanelId == 'docmap.map')"
+        },
+        {
+          "command": "docmap.decisionLog",
+          "when": "config.docmap.showAllCommands"
+        },
+        {
+          "command": "docmap.whereToStart",
+          "when": "config.docmap.showAllCommands"
+        },
+        {
+          "command": "docmap.clearSavedData",
+          "when": "config.docmap.showAllCommands"
+        },
+        {
+          "command": "docmap.addRulePointers",
+          "when": "config.docmap.showAllCommands"
+        },
+        {
+          "command": "docmap.setupAgentTools",
+          "when": "config.docmap.showAllCommands"
+        },
+        {
+          "command": "docmap.openQuestions",
+          "when": "config.docmap.showAllCommands"
+        },
+        {
+          "command": "docmap.myItems",
+          "when": "config.docmap.showAllCommands"
+        },
+        {
+          "command": "docmap.plansMenu",
+          "when": "config.docmap.showAllCommands"
+        },
+        {
+          "command": "docmap.checkDesign",
+          "when": "resourceLangId == markdown || activeCustomEditorId == 'docmap.page' || activeWebviewPanelId == 'docmap.map'"
+        },
+        {
+          "command": "docmap.openMap",
+          "when": "resourceLangId == markdown || activeWebviewPanelId == 'docmap.map'"
+        },
+        {
+          "command": "docmap.openMapHere",
+          "when": "(resourceLangId == markdown && activeCustomEditorId != 'docmap.page') || activeWebviewPanelId == 'docmap.map'"
+        },
+        {
+          "command": "docmap.showSource",
+          "when": "activeCustomEditorId == 'docmap.page'"
+        },
+        {
+          "command": "docmap.openInBrowser",
+          "when": "resourceLangId == markdown || activeWebviewPanelId == 'docmap.map'"
+        },
+        {
+          "command": "docmap.openMapAt",
+          "when": "false"
+        },
+        {
+          "command": "docmap.refreshFolderMap",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "docmap.inbox.refresh",
+          "when": "false"
+        },
+        {
+          "command": "docmap.inbox.markRead",
+          "when": "false"
+        },
+        {
+          "command": "docmap.inbox.askAgent",
+          "when": "false"
+        },
+        {
+          "command": "docmap.inbox.archive",
+          "when": "false"
+        },
+        {
+          "command": "docmap.inbox.compare",
+          "when": "false"
+        },
+        {
+          "command": "docmap.onEnter",
+          "when": "false"
+        },
+        {
+          "command": "docmap.bold",
+          "when": "editorLangId == markdown"
+        },
+        {
+          "command": "docmap.italic",
+          "when": "editorLangId == markdown"
+        },
+        {
+          "command": "docmap.strikethrough",
+          "when": "editorLangId == markdown"
+        },
+        {
+          "command": "docmap.formatTable",
+          "when": "editorLangId == markdown"
+        },
+        {
+          "command": "docmap.updateToc",
+          "when": "editorLangId == markdown"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "docmap.refreshFolderMap",
+          "when": "view == docmap.folderMap",
+          "group": "navigation"
+        },
+        {
+          "command": "docmap.inbox.refresh",
+          "when": "view == docmap.inbox",
+          "group": "1_docs@9"
+        },
+        {
+          "command": "docmap.home",
+          "when": "view == docmap.inbox",
+          "group": "1_docs@1"
+        },
+        {
+          "command": "docmap.plansDashboard",
+          "when": "view == docmap.inbox",
+          "group": "1_docs@3"
+        },
+        {
+          "command": "docmap.newDocFromTemplate",
+          "when": "view == docmap.inbox",
+          "group": "navigation@9"
+        },
+        {
+          "command": "docmap.decisionLog",
+          "when": "view == docmap.inbox",
+          "group": "1_docs@4"
+        },
+        {
+          "command": "docmap.searchDocs",
+          "when": "view == docmap.inbox",
+          "group": "navigation@1"
+        },
+        {
+          "command": "docmap.docAtlas",
+          "when": "view == docmap.inbox",
+          "group": "1_docs@2"
+        },
+        {
+          "command": "docmap.whatCanItDo",
+          "when": "view == docmap.inbox",
+          "group": "0_find@0"
+        },
+        {
+          "command": "docmap.whereToStart",
+          "when": "view == docmap.inbox",
+          "group": "1_docs@0"
+        },
+        {
+          "command": "docmap.help",
+          "when": "view == docmap.inbox",
+          "group": "navigation@9"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "docmap.inbox.askAgent",
+          "when": "view == docmap.inbox && viewItem =~ /^inbox(Group|Dupe|File)/",
+          "group": "inline@1"
+        },
+        {
+          "command": "docmap.inbox.markRead",
+          "when": "view == docmap.inbox && viewItem =~ /^inbox(File|Group\\.(changed|new))/",
+          "group": "inline@2"
+        },
+        {
+          "command": "docmap.inbox.compare",
+          "when": "view == docmap.inbox && viewItem == inboxFile.dupe",
+          "group": "inline@0"
+        },
+        {
+          "command": "docmap.inbox.archive",
+          "when": "view == docmap.inbox && viewItem =~ /^inboxFile/",
+          "group": "1_inbox@1"
+        },
+        {
+          "command": "docmap.inbox.markRead",
+          "when": "view == docmap.inbox && viewItem =~ /^inbox(File|Group)/",
+          "group": "1_inbox@2"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "docmap.newDocHere",
+          "when": "explorerResourceIsFolder",
+          "group": "navigation@9"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "docmap.formatTable",
+          "when": "editorLangId == markdown",
+          "group": "1_modification@90"
+        },
+        {
+          "command": "docmap.updateToc",
+          "when": "editorLangId == markdown",
+          "group": "1_modification@91"
+        },
+        {
+          "command": "docmap.checkDesign",
+          "when": "editorLangId == markdown",
+          "group": "2_docmap@10"
+        }
+      ]
+    },
+    "configuration": [
+      {
+        "title": "All-in-One Markdown Viewer",
+        "properties": {
+          "docmap.readingTools": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "Reading tools, on by default: **Quick read** (key `s`) shows each section's first paragraph only, **levels** (keys `1`–`3`, `0` for all), each section's **reading time** in the outline, and **structure hints**. Also shows footnotes, task lists and callouts. Turn off for the plain outline."
+          },
+          "docmap.writingHelpers": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "Writing keys in Markdown files: `Ctrl+B` bold, `Ctrl+I` italic, `Alt+S` strikethrough, and lists that continue on `Enter`. Off automatically when Markdown All in One is installed (it has the same keys)."
+          },
+          "docmap.codeLens": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "Show **📄 Mentioned in N docs** above code files that your Markdown docs name."
+          },
+          "docmap.myNames": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "markdownDescription": "Your names and @handles (e.g. `[\"Priya\", \"@priya\"]`). **My Items** lists the open tasks and questions that name you; **Sign off** uses the first name. Empty: git's `user.name`."
+          }
+        }
+      },
+      {
+        "title": "Reading look",
+        "properties": {
+          "docmap.theme": {
+            "type": "string",
+            "enum": [
+              "vscode",
+              "paper",
+              "github",
+              "night",
+              "focus"
+            ],
+            "enumDescriptions": [
+              "Your VS Code colours (default)",
+              "Warm, book-like, serif",
+              "Familiar GitHub look",
+              "Dark and soft",
+              "One calm column, nothing else"
+            ],
+            "default": "vscode",
+            "markdownDescription": "Reading theme for the preview. High-contrast VS Code themes always win, so it stays readable. Quick switch: **Choose Reading Look** in the preview's `…` menu."
+          },
+          "docmap.fontScale": {
+            "type": "number",
+            "default": 1,
+            "minimum": 0.7,
+            "maximum": 2,
+            "markdownDescription": "Text size in the preview (1 = normal, 1.15 = larger)."
+          },
+          "docmap.lineWidth": {
+            "type": "string",
+            "enum": [
+              "narrow",
+              "normal",
+              "wide",
+              "full"
+            ],
+            "default": "normal",
+            "markdownDescription": "How wide a line of text may get in the preview."
+          }
+        }
+      },
+      {
+        "title": "Docs Inbox",
+        "properties": {
+          "docmap.skipFolders": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [],
+            "markdownDescription": "Extra folders docmap leaves out of the Docs Inbox, search, the Plans Dashboard, trust marks and \"Mentioned in N docs\" — a folder name (`archive`) or a path from the project root (`docs/old`). Folders starting with a dot (tool files such as `.agents`) and dependency/build folders are always left out."
+          },
+          "docmap.includeFolders": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "default": [
+              ".github"
+            ],
+            "markdownDescription": "Folders starting with a dot that docmap shows after all (by default only `.github`). Add e.g. `.claude` to see an agent's Markdown files in the Docs Inbox and search."
+          }
+        }
+      },
+      {
+        "title": "AI",
+        "properties": {
+          "docmap.agentTarget": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "clipboard"
+            ],
+            "enumDescriptions": [
+              "Open the prompt in Copilot Chat when you use VS Code with Copilot, else copy it",
+              "Copy the prompt, to paste into the agent you use: Claude Code, Codex, Copilot, Cursor… (default)"
+            ],
+            "default": "clipboard",
+            "markdownDescription": "Where **Ask my AI agent** prompts go. docmap never runs AI itself and sends nothing anywhere."
+          },
+          "docmap.ai.answerWithMyModel": {
+            "type": "boolean",
+            "default": false,
+            "markdownDescription": "**AI level 1 — off by default.** Prompts that only ask for an answer (summarise, explain, challenge, find risks, verify a paragraph, summarise changes…) are answered by **your own model in VS Code** (e.g. Copilot) on a page beside the document, instead of being handed to your agent. docmap has no model and no servers; it asks before the first send. Prompts that change files always go to your agent."
+          },
+          "docmap.ai.tools": {
+            "type": "boolean",
+            "default": false,
+            "markdownDescription": "**AI level 2 — off by default.** Gives agents docmap's tools: plans, open questions, a doc's outline, paragraphs that don't match the code. In Copilot agent mode as `#docmap…` tools; for Claude Code, Cursor and others through a local MCP server (**Set Up docmap Tools for My Agent**). Everything runs on this computer."
+          }
+        }
+      },
+      {
+        "title": "Advanced",
+        "properties": {
+          "docmap.showAllCommands": {
+            "type": "boolean",
+            "default": false,
+            "markdownDescription": "Show docmap's rarely used commands in the Command Palette too (decision log, reading order, open questions, my items, agent set-up, clear saved data…). Off, they are all in **What Can docmap Do?**."
+          },
+          "docmap.homeOnStart": {
+            "type": "boolean",
+            "default": false,
+            "markdownDescription": "Off by default. Open the **Home** page (what is being worked on, hard-to-read docs, docs out of date, every feature) when a project with many docs opens and no tab is open. Any time: **Home** in the Command Palette."
+          },
+          "docmap.cleanView": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "**Clean view**: lays AI-written Markdown out neatly in the preview — key–value cards, note and warning boxes, step-by-step lists, status chips, checklist progress, syntax colours. Your file is never changed. Quick switch: **Show as written** on the page."
+          },
+          "docmap.headingNumbers": {
+            "type": "boolean",
+            "default": false,
+            "markdownDescription": "Number the headings in the preview (1, 1.1, 1.2 …)."
+          },
+          "docmap.diagrams": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "Draw ` ```mermaid ` code blocks as diagrams. The diagram library loads only for documents that have a diagram."
+          },
+          "docmap.inferHeadings": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "always",
+              "off"
+            ],
+            "default": "auto",
+            "enumDescriptions": [
+              "Only in files with fewer than 3 real headings (common in AI-written or chat notes).",
+              "In every file.",
+              "Never: only real Markdown headings are shown."
+            ],
+            "markdownDescription": "Structure hints (needs **Reading Tools** on): lines that act as headings — a line of only **bold text**, or a numbered line like `2.1 Title` — are added to the outline, in italics."
+          },
+          "docmap.rememberPlace": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "When you open a file's page again, even after restarting VS Code, go back to the section you were reading. Only the heading is stored, in VS Code's storage for this folder — never the text."
+          },
+          "docmap.liveBrowser": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "**Open in browser** shows a live page that follows your edits as you type. It is served only to this computer (`127.0.0.1`, behind a private link) and stops updating when VS Code closes. Turn off to save a copy instead, which you refresh by pressing the button again."
+          },
+          "docmap.largeFileBytes": {
+            "type": "integer",
+            "default": 2097152,
+            "minimum": 0,
+            "description": "Files bigger than this (in bytes) ask before they open. 2097152 is 2 MB."
+          },
+          "docmap.staleDays": {
+            "type": "integer",
+            "default": 90,
+            "minimum": 0,
+            "markdownDescription": "Docs Inbox: a file not changed for this many days is listed under **Probably out of date** (0 = never by age)."
+          },
+          "docmap.ai.model": {
+            "type": "string",
+            "default": "",
+            "markdownDescription": "AI level 1: the model family to answer with (e.g. `gpt-4o`, `claude-sonnet-4`). Empty: a Copilot model, else any model VS Code offers."
+          }
+        }
+      }
+    ],
+    "icons": {
+      "docmap-map-side": {
+        "description": "Open the preview beside the Markdown file",
+        "default": {
+          "fontPath": "media/docmap-icons.woff",
+          "fontCharacter": "\\E001"
+        }
+      },
+      "docmap-map-here": {
+        "description": "Show the Markdown file as a preview in its own tab",
+        "default": {
+          "fontPath": "media/docmap-icons.woff",
+          "fontCharacter": "\\E002"
+        }
+      },
+      "docmap-map-browser": {
+        "description": "Open a copy of the preview in the browser",
+        "default": {
+          "fontPath": "media/docmap-icons.woff",
+          "fontCharacter": "\\E003"
+        }
+      },
+      "docmap-show-source": {
+        "description": "Show the Markdown source in this tab",
+        "default": {
+          "fontPath": "media/docmap-icons.woff",
+          "fontCharacter": "\\E004"
+        }
+      }
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "docmap.inbox",
+          "name": "Docs Inbox",
+          "contextualTitle": "All-in-One Markdown Viewer",
+          "icon": "$(docmap-map-here)"
+        },
+        {
+          "id": "docmap.folderMap",
+          "name": "Markdown Files",
+          "contextualTitle": "All-in-One Markdown Viewer",
+          "icon": "$(docmap-map-here)"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "docmap.folderMap",
+        "contents": "No Markdown files in this workspace yet.\nOpen a folder with .md files to see all of them here, each with its headings."
+      },
+      {
+        "view": "docmap.inbox",
+        "contents": "No Markdown files in this workspace yet.\nOpen a folder with .md files: the inbox shows what changed, what is new, duplicates and what is out of date."
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "docmap.page",
+        "displayName": "All-in-One Markdown Viewer (preview)",
+        "selector": [
+          {
+            "filenamePattern": "*.md"
+          },
+          {
+            "filenamePattern": "*.markdown"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "docmap.openMapHere",
+        "key": "ctrl+alt+v",
+        "mac": "cmd+alt+v",
+        "when": "resourceLangId == markdown && activeCustomEditorId != 'docmap.page' && !docmap.toggleKeyOff"
+      },
+      {
+        "command": "docmap.showSource",
+        "key": "ctrl+alt+v",
+        "mac": "cmd+alt+v",
+        "when": "activeCustomEditorId == 'docmap.page' && !docmap.toggleKeyOff"
+      },
+      {
+        "command": "docmap.bold",
+        "key": "ctrl+b",
+        "mac": "cmd+b",
+        "when": "editorTextFocus && editorLangId == markdown && !docmap.writingKeysOff"
+      },
+      {
+        "command": "docmap.italic",
+        "key": "ctrl+i",
+        "mac": "cmd+i",
+        "when": "editorTextFocus && editorLangId == markdown && !docmap.italicKeyOff"
+      },
+      {
+        "command": "docmap.strikethrough",
+        "key": "alt+s",
+        "when": "editorTextFocus && editorLangId == markdown && !docmap.writingKeysOff"
+      },
+      {
+        "command": "docmap.onEnter",
+        "key": "enter",
+        "when": "editorTextFocus && editorLangId == markdown && !docmap.writingKeysOff && !suggestWidgetVisible && !inlineSuggestionVisible && !editorHasMultipleSelections && !inSnippetMode && !editorReadonly && vim.mode != 'Normal'"
+      }
+    ],
+    "walkthroughs": [
+      {
+        "id": "docmap.start",
+        "title": "All-in-One Markdown Viewer",
+        "description": "Read Markdown as a page, know which docs to trust, track your plans — and use your own AI.",
+        "steps": [
+          {
+            "id": "preview",
+            "title": "Preview in the same tab",
+            "description": "Open a Markdown file and press Ctrl+Alt+V (Mac: Cmd+Alt+V).\n[Show Preview](command:docmap.openMapHere)",
+            "media": {
+              "markdown": "media/walkthrough/preview.md"
+            },
+            "completionEvents": [
+              "onCommand:docmap.openMapHere"
+            ]
+          },
+          {
+            "id": "clean",
+            "title": "Clean view for AI-written Markdown",
+            "description": "Cards, note boxes, steps and status labels — your file is never changed.",
+            "media": {
+              "markdown": "media/walkthrough/clean.md"
+            }
+          },
+          {
+            "id": "trust",
+            "title": "Trust markers",
+            "description": "Paragraphs that don't match your code, or other docs, are marked in the margin.",
+            "media": {
+              "markdown": "media/walkthrough/trust.md"
+            }
+          },
+          {
+            "id": "plans",
+            "title": "Plans: dashboard, open questions",
+            "description": "Where does every plan stand?\n[Open Plans Dashboard](command:docmap.plansDashboard)",
+            "media": {
+              "markdown": "media/walkthrough/plans.md"
+            },
+            "completionEvents": [
+              "onCommand:docmap.plansDashboard"
+            ]
+          },
+          {
+            "id": "compare",
+            "title": "Compare: what changed, on the page",
+            "description": "Since you last read it, the last commit, a week ago…\n[Compare With…](command:docmap.compare)",
+            "media": {
+              "markdown": "media/walkthrough/compare.md"
+            },
+            "completionEvents": [
+              "onCommand:docmap.compare"
+            ]
+          },
+          {
+            "id": "ai",
+            "title": "Your own AI",
+            "description": "Prompts for your agent by default; your own model and agent tools when you switch them on.\n[Open AI settings](command:workbench.action.openSettings?%5B%22docmap.ai%22%5D)",
+            "media": {
+              "markdown": "media/walkthrough/ai.md"
+            }
+          },
+          {
+            "id": "help",
+            "title": "Every feature, with examples",
+            "description": "One page: what each feature does, an example to try, and what you should see.\n[Open Help](command:docmap.help)",
+            "media": {
+              "markdown": "media/walkthrough/ai.md"
+            },
+            "completionEvents": [
+              "onCommand:docmap.help"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.core.json",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "test": "vitest run",
+    "test:integration": "node scripts/build.mjs --tests && vscode-test",
+    "audit:ui": "node -e \"const fs=require('fs'),cp=require('child_process');if(fs.existsSync('DESIGN.md')&&fs.existsSync('scripts/frontend-audit/audit.py'))cp.execFileSync('python3',['scripts/frontend-audit/audit.py','DESIGN.md','src/webview','docs/design-sample.html'],{stdio:'inherit'});else console.log('audit:ui skipped (internal DESIGN.md not present)')\"",
+    "check:structure": "node -e \"const fs=require('fs'),cp=require('child_process');if(fs.existsSync('STRUCTURE.md')&&fs.existsSync('scripts/check_structure.py'))cp.execFileSync('python3',['scripts/check_structure.py'],{stdio:'inherit'});else console.log('check:structure skipped (internal STRUCTURE.md not present)')\"",
+    "check:tokens": "node scripts/check-tokens.mjs",
+    "check": "npm run typecheck && npm run lint && npm run test && npm run build && npm run check:structure && npm run audit:ui",
+    "package": "npm run build && vsce package --no-dependencies",
+    "publish:marketplace": "node scripts/env-guard.mjs VSCE_PAT && npm run build && vsce publish --no-dependencies",
+    "prepare": "node -e \"const fs=require('fs'),cp=require('child_process');if(fs.existsSync('lefthook.yml'))cp.execSync('lefthook install',{stdio:'inherit'})\"",
+    "test:browser": "node tests/browser/panel.browser.mjs",
+    "icons": "node scripts/build-icons.mjs",
+    "publish:openvsx": "node scripts/env-guard.mjs OVSX_PAT && npm run build && npx --yes ovsx@1.2.0 publish --no-dependencies"
+  },
+  "dependencies": {
+    "markdown-it": "15.0.3",
+    "markdown-it-footnote": "4.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.8",
+    "@types/markdown-it-footnote": "^3.0.4",
+    "@types/mocha": "10.0.10",
+    "@types/node": "22.20.5",
+    "@types/vscode": "1.100.0",
+    "@vscode/test-cli": "0.0.15",
+    "@vscode/test-electron": "3.1.0",
+    "@vscode/vsce": "4.1.1",
+    "esbuild": "0.28.2",
+    "lefthook": "2.2.2",
+    "mermaid": "12.3.0",
+    "playwright-core": "1.65.1",
+    "svg2ttf": "6.1.0",
+    "svgicons2svgfont": "16.0.0",
+    "ttf2woff": "3.0.0",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  },
+  "overrides": {
+    "diff": "^8.0.3",
+    "serialize-javascript": "^7.1.4",
+    "lodash-es": "^4.18.1",
+    "qs": "^6.17.1",
+    "@azure/msal-node": "^7.2.2",
+    "glob": "^14.0.6",
+    "minimatch": "^11.0.8"
+  },
+  "icon": "media/icon.png",
+  "homepage": "https://kish21.github.io/docmap-help/"
+}

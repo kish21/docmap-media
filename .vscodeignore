@@ -1,0 +1,33 @@
+# Everything not listed here ships. The .vsix should hold only: dist/ (minus tests), media/ (built icons, not their sources), package.json, README, LICENSE, CHANGELOG.
+# (vsce: a "!" re-include always wins over a later ignore, so this is an ignore list, not an allow list.)
+src/**
+tests/**
+scripts/**
+docs/**
+status/**
+dist/tests/**
+node_modules/**
+.github/**
+.vscode/**
+.vscode-test/**
+.vscode-test.mjs
+.claude/**
+*.vsix
+.env*
+.gitignore
+.gitleaks.toml
+biome.json
+lefthook.yml
+tsconfig*.json
+vitest.config.mts
+package-lock.json
+# every Markdown file stays out, except the two the Marketplace listing shows, and HELP.md ("Help (All Features)" opens it)
+*.md
+!README.md
+!CHANGELOG.md
+!HELP.md
+# icon sources and repo README screenshot: the .vsix ships only the built font and the app icon (npm run icons)
+media/icons/**
+screenshot.png
+# source maps only help us debug; users never need them (about 1.4 MB unpacked). The local build keeps them.
+dist/*.map
