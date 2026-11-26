@@ -1,0 +1,7 @@
+{
+  "//": "ADR-0001, enforced: src/core compiles with NO DOM and NO vscode types. An import of either fails typecheck.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "lib": ["ES2022"], "types": [] },
+  "include": ["src/core"],
+  "exclude": ["src/core/**/*.test.ts"]
+}

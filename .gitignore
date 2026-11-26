@@ -1,0 +1,15 @@
+node_modules/
+dist/
+out/
+coverage/
+*.vsix
+.vscode-test/
+NEXT-SESSION.md
+
+# secrets — only .env.example is committed
+.env
+.env.*
+*.env
+*.env.local
+.env.bak
+!.env.example

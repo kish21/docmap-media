@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main, "claude/**"] # master is the default branch: every merge is checked there too
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install (exactly the lockfile)
+        run: npm ci
+      - name: Dependency vulnerabilities (fail on any known CVE)
+        run: npm audit --audit-level=low
+      - name: Secret scan (whole history)
+        run: |
+          go install github.com/zricethezav/gitleaks/v8@v8.30.1
+          "$(go env GOPATH)/bin/gitleaks" git --redact --no-banner
+      - name: Typecheck (incl. core without DOM/vscode)
+        run: npm run typecheck
+      - name: Lint + format
+        run: npx biome ci .
+      - name: Unit tests
+        run: npm test
+      - name: Build
+        run: npm run build
+      - name: Structure map matches the tree
+        run: npm run check:structure
+      - name: UI audit (DESIGN.md + webview) — errors block
+        run: npm run audit:ui
+      - name: Design tokens resolve at runtime
+        run: CHROMIUM_PATH=/usr/bin/google-chrome npm run check:tokens
+      - name: Panel in a real browser (what the user sees; real engine output)
+        run: CHROMIUM_PATH=/usr/bin/google-chrome npm run test:browser
+      - name: Integration tests inside real VS Code
+        run: xvfb-run -a npm run test:integration
+      - name: Package the .vsix (only dist, manifest and docs may ship)
+        run: |
+          npx vsce ls --no-dependencies | tee "$RUNNER_TEMP/vsix-files.txt"
+          if grep -vE '^(dist/(extension|webview)\.js(\.map)?|dist/mcp\.js|dist/(tokens|styles)\.css|package\.json|README\.md|HELP\.md|LICENSE|CHANGELOG\.md|dist/mermaid\.js|media/docmap-icons\.woff|media/walkthrough/[a-z]+\.md|media/icon\.png)$' "$RUNNER_TEMP/vsix-files.txt"; then
+            echo "Unexpected file in the .vsix (above)"; exit 1
+          fi
+          npx vsce package --no-dependencies
+      - uses: actions/upload-artifact@v7
+        with:
+          name: docmap-vsix
+          path: "*.vsix"
