@@ -302,8 +302,9 @@ describe("footnotes", () => {
   it("the growth check catches quadratic work (so the test above can fail)", () => {
     let sink = 0;
     const quadratic = (n: number) => {
-      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) sink += i ^ j;
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) sink = (sink + (i ^ j)) | 0;
     };
+    quadratic(2_000); // warm up JIT before measuring growth ratio
     expect(growth(quadratic, 6_000)).toBeGreaterThan(MAX_GROWTH);
     expect(sink).not.toBe(0.5); // keeps the loop from being optimised away
   });
