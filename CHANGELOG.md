@@ -1,5 +1,21 @@
 # What's new
 
+## 3.2.2 — enterprise readiness, big-workspace speed, and public open-source releases
+
+- **Zero-cost startup (#52):** docmap no longer scans every Markdown file when VS Code opens — **Home on Start** is now
+  off by default, and commit hints and code-link lenses stay idle until needed.
+- **Smooth on large workspaces (#53, #55):** Docs Inbox streams files instead of holding all document text in memory,
+  caches results by file size and modified time, yields between files, caps parallel file reads and `git` processes, and
+  skips heavy duplicate checks and `git blame` on huge files.
+- **Never reads `.env` files (#54):** trust checks only inspect `.env.example`, `.env.sample` and `.env.template`
+  (never `.env` or `.env.*` secrets), bound code-identifier scanning, and avoid clearing the whole cache on unrelated
+  file edits.
+- **Faster large previews and diagrams (#56):** lowers the default large-file threshold to 1 MB, scales edit debounce on
+  large documents, and renders Mermaid diagrams lazily as they scroll into view.
+- **Security & open-source release pipeline (#57, #58):** adds `SECURITY.md` documenting docmap's privacy and sandboxing
+  architecture, publishes the clean open-source repository at `kish21/markdown-docmap`, and builds reproducible `.vsix`
+  releases with `SHA256SUMS.txt` in GitHub Actions.
+
 ## 3.2.1 — fixes for 3.2.0
 
 - **◈ Doc Atlas** finds a doc you wrote since docmap last read the project (before, it showed the first feature

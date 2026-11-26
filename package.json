@@ -2,7 +2,7 @@
   "name": "markdown-as-web-page",
   "displayName": "All-in-One Markdown Viewer",
   "description": "Your AI wrote 200 Markdown files — read the 10 that matter. Same-tab preview with a clickable table of contents, a Docs Inbox (changed, duplicates, out of date), review AI plans and send it to your own agent, themes, highlights, export. Free; collects nothing.",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "publisher": "kish21",
   "license": "MIT",
   "private": false,
