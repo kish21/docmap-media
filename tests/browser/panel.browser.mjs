@@ -2139,31 +2139,23 @@ const { headings, html } = parsed.document;
     assert.deepEqual(await page.evaluate(() => window.__sent.at(-1)), { type: "markRead" });
   });
   await check(
-    "2026-11-17 layout: status first, then the actions together at the right edge, none of them mixed in",
+    "2026-11-17 / 3.3.0 layout: status first, then the quick-action controls together at the right edge, none mixed in",
     async () => {
       const parts = await page.evaluate(() => {
         const box = (s) => document.querySelector(s)?.getBoundingClientRect();
-        const actions = [...document.querySelectorAll(".kp-actions > button")].map(
+        const actions = [...document.querySelectorAll(".kp-actions > :is(.kp-look-wrap, button)")].map(
           (b) => b.className.split(" ")[0],
         );
-        const mixed = document.querySelectorAll(".kp-chips :is(.kp-clean, .kp-compare, .kp-menu)").length;
+        const mixed = document.querySelectorAll(".kp-chips :is(.kp-look, .kp-plans, .kp-menu)").length;
         return { bar: box(".kp-bar"), status: box(".kp-chips"), act: box(".kp-actions"), actions, mixed };
       });
-      assert.deepEqual(parts.actions.slice(0, 2), ["kp-clean", "kp-compare"]);
+      assert.deepEqual(parts.actions.slice(0, 3), ["kp-look-wrap", "kp-clean", "kp-plans"]);
       assert.ok(parts.actions.includes("kp-menu"), parts.actions.join(", "));
       assert.equal(parts.mixed, 0, "an action sits among the status items");
       assert.ok(Math.abs(parts.act.right - parts.bar.right) < 2, "the actions are not at the right edge");
       assert.ok(parts.act.top >= parts.status.top, "the actions come before the status");
     },
   );
-  await check("2026-11-17: Clean view is a switch that says whether it is on", async () => {
-    const sw = await page.$eval(".kp-clean", (b) => ({
-      role: b.getAttribute("role"),
-      checked: b.getAttribute("aria-checked"),
-      text: b.textContent,
-    }));
-    assert.deepEqual(sw, { role: "switch", checked: "true", text: "Clean view" });
-  });
   await check(
     "2026-11-17: 'In short' shows when it says something the page does not show at the top",
     async () => {
@@ -2507,22 +2499,17 @@ const { headings, html } = parsed.document;
       });
     },
   );
-  await check(
-    "3.0 clean: 'Show as written' asks the host to turn Clean view off; off, the page is the plain render",
-    async () => {
-      await page.click(".kp-clean");
-      assert.deepEqual(await page.evaluate(() => window.__sent.at(-1)), { type: "setClean", on: false });
-      await send(page, {
-        type: "render",
-        fileName: "plan.md",
-        readingTools: true,
-        ...r.document,
-        extras: { ...extras, look: { ...extras.look, clean: false } },
-      });
-      await page.waitForFunction(() => !document.querySelector(".dm-kv"));
-      assert.equal(await page.$$eval(".dm-steps, .dm-status, .dm-fm", (x) => x.length), 0);
-    },
-  );
+  await check("3.0 clean: when Clean view is off, the page is the plain render", async () => {
+    await send(page, {
+      type: "render",
+      fileName: "plan.md",
+      readingTools: true,
+      ...r.document,
+      extras: { ...extras, look: { ...extras.look, clean: false } },
+    });
+    await page.waitForFunction(() => !document.querySelector(".dm-kv"));
+    assert.equal(await page.$$eval(".dm-steps, .dm-status, .dm-fm", (x) => x.length), 0);
+  });
   await page.close();
 }
 
@@ -2602,8 +2589,8 @@ const { headings, html } = parsed.document;
         await page.$eval(".prose", (p) => p.textContent),
         /We ship on Friday with the old queue\./,
       );
-      await page.click(".kp-compare");
-      assert.deepEqual(await page.evaluate(() => window.__sent.at(-1)), { type: "redlineMenu" });
+      await page.click(".kp-menu");
+      assert.equal(await page.evaluate(() => window.__sent.at(-1).type), "sectionMenu");
     },
   );
   await check(
@@ -3016,13 +3003,21 @@ Words.
   await render({ look, keyPoints, report: false, inTab: true });
   await page.waitForSelector(".kp-actions");
   await check(
-    "page buttons: a file's own tab has 'Show source', and it asks the host for the text",
+    "page buttons: quick-action bar sends openPlans, openAtlas, redlineMenu, openInBrowser, openQuestions",
     async () => {
-      await page.click(".kp-source");
-      assert.deepEqual(await page.evaluate(() => window.__sent.at(-1)), { type: "showSource" });
+      await page.click(".kp-plans");
+      assert.deepEqual(await page.evaluate(() => window.__sent.at(-1)), { type: "openPlans" });
+      await page.click(".kp-atlas");
+      assert.deepEqual(await page.evaluate(() => window.__sent.at(-1)), { type: "openAtlas" });
+      await page.click(".kp-compare");
+      assert.deepEqual(await page.evaluate(() => window.__sent.at(-1)), { type: "redlineMenu" });
+      await page.click(".kp-browser");
+      assert.deepEqual(await page.evaluate(() => window.__sent.at(-1)), { type: "openInBrowser" });
+      await page.click(".kp-questions");
+      assert.deepEqual(await page.evaluate(() => window.__sent.at(-1)), { type: "openQuestions" });
     },
   );
-  await check("page buttons: '◈ Doc Atlas' looks like the buttons beside it", async () => {
+  await check("page buttons: 'Look' looks like the buttons beside it", async () => {
     const look = await page.evaluate(() => {
       const css = (s) => {
         const c = getComputedStyle(document.querySelector(s));
@@ -3035,17 +3030,19 @@ Words.
           c.fontSize,
         ];
       };
-      return { atlas: css(".kp-atlas"), menu: css(".kp-menu") };
+      return { lookBtn: css(".kp-look"), menu: css(".kp-menu") };
     });
-    assert.deepEqual(look.atlas, look.menu);
+    assert.deepEqual(look.lookBtn, look.menu);
   });
   await check(
-    "page buttons: a page docmap wrote has no Doc Atlas; a map beside the text has no 'Show source'",
+    "page buttons: a report page omits 'Atlas', while Look / Plans / Compare / More stay",
     async () => {
       await render({ look, keyPoints, report: true, inTab: false });
       await page.waitForFunction(() => !document.querySelector(".kp-atlas"));
-      assert.equal(await page.$(".kp-source"), null);
-      assert.ok(await page.$(".kp-menu"), "the other buttons stay");
+      assert.equal(await page.$(".kp-atlas"), null);
+      assert.ok(await page.$(".kp-look"), "Look button stays");
+      assert.ok(await page.$(".kp-plans"), "Plans button stays");
+      assert.ok(await page.$(".kp-menu"), "More button stays");
     },
   );
   await page.close();
@@ -3089,6 +3086,146 @@ Words.
     assert.equal(await atlas.$eval(".title", (e) => e.textContent), "Dialogue & casting");
   });
   await atlas.close();
+}
+
+// ---------------------------------------------------------------------------------------------------------
+// 3.3.0: 4-control top bar, 1-click Look popover (8 themes), high-contrast override, cross-polarity contrast
+{
+  const { page } = await openPanel();
+  const sample = engine.parse(
+    "# Simple Doc\n\n> A blockquote that must stay readable in light reading themes over dark VS Code.\n\nSee `backend/app/config/platform.yaml` and [`VisualThresholds`](https://example.com) and `plainCode`.\n",
+    1,
+    { readingTools: true },
+  );
+  assert.ok(sample.ok);
+  await send(page, {
+    type: "render",
+    docVersion: 1,
+    fileName: "simple.md",
+    headings: sample.document.headings,
+    html: sample.document.html,
+    extras: {
+      look: { theme: "vscode", fontScale: 1, lineWidth: "normal", clean: true },
+      codeRefs: ["backend/app/config/platform.yaml"],
+      inTab: true,
+    },
+  });
+  await page.waitForSelector(".kp-look");
+
+  await check(
+    "3.3.0: quick-action top bar renders on a minimal doc (Look, Plans, Atlas, Compare, Browser, Questions, More)",
+    async () => {
+      const controls = await page.$$eval(".kp-actions > :is(.kp-look-wrap, button)", (els) =>
+        els.map((e) => e.className.split(" ")[0]),
+      );
+      assert.deepEqual(controls, [
+        "kp-look-wrap",
+        "kp-clean",
+        "kp-plans",
+        "kp-atlas",
+        "kp-compare",
+        "kp-browser",
+        "kp-questions",
+        "kp-menu",
+      ]);
+    },
+  );
+
+  await check(
+    "3.3.0: clicking Look opens popover with 8 theme swatches, 4 sizes, 4 widths; clicks send setLook and Esc closes",
+    async () => {
+      await page.click(".kp-look");
+      assert.equal(await page.$eval("#dm-look-popover", (el) => el.hidden), false);
+      assert.equal(await page.$$eval(".dm-swatch", (els) => els.length), 8);
+      assert.equal(await page.$$eval(".dm-seg-btn[data-scale]", (els) => els.length), 4);
+      assert.equal(await page.$$eval(".dm-seg-btn[data-width]", (els) => els.length), 4);
+
+      assert.equal(await page.$eval(".kp-look", (el) => el.textContent), "Look: VS Code");
+      await page.click('.dm-swatch[data-theme="warm-dark"]');
+      assert.deepEqual(await page.evaluate(() => window.__sent.at(-1)), {
+        type: "setLook",
+        theme: "warm-dark",
+      });
+      assert.equal(await page.evaluate(() => document.body.getAttribute("data-reading-theme")), "warm-dark");
+      assert.equal(await page.$eval(".kp-look", (el) => el.textContent), "Look: Warm Dark");
+
+      await page.click('.dm-seg-btn[data-scale="1.15"]');
+      assert.deepEqual(await page.evaluate(() => window.__sent.at(-1)), { type: "setLook", fontScale: 1.15 });
+
+      await page.click('.dm-seg-btn[data-width="wide"]');
+      assert.deepEqual(await page.evaluate(() => window.__sent.at(-1)), {
+        type: "setLook",
+        lineWidth: "wide",
+      });
+      assert.equal(await page.evaluate(() => document.body.getAttribute("data-line-width")), "wide");
+
+      await page.keyboard.press("Escape");
+      assert.equal(await page.$eval("#dm-look-popover", (el) => el.hidden), true);
+    },
+  );
+
+  await check(
+    "3.3.0: light reading themes stay readable even when VS Code is in a dark theme (no pale-yellow code leak)",
+    async () => {
+      const results = await page.evaluate(() => {
+        document.body.classList.add("vscode-dark");
+        document.documentElement.style.setProperty("--vscode-editor-background", "rgb(30, 30, 30)");
+        document.documentElement.style.setProperty("--vscode-textPreformat-foreground", "rgb(215, 186, 125)");
+        // Simulate VS Code's injected _defaultStyles dark blockquote background
+        const def = document.createElement("style");
+        def.textContent = "blockquote { background: rgb(34, 34, 34); }";
+        document.head.prepend(def);
+        const out = {};
+        for (const theme of ["github", "paper", "solarized-light"]) {
+          document.body.setAttribute("data-reading-theme", theme);
+          const code = getComputedStyle(document.querySelector(".prose code:not(.dm-coderef)")).color;
+          const ref = getComputedStyle(document.querySelector(".prose code.dm-coderef")).color;
+          const linkCode = getComputedStyle(document.querySelector(".prose a code")).color;
+          const quoteBg = getComputedStyle(document.querySelector(".prose blockquote")).backgroundColor;
+          out[theme] = { code, ref, linkCode, quoteBg };
+        }
+        return out;
+      });
+      for (const [theme, colors] of Object.entries(results)) {
+        assert.notEqual(colors.code, "rgb(215, 186, 125)", `${theme} code leaked dark VS Code pale yellow`);
+        assert.notEqual(colors.ref, "rgb(215, 186, 125)", `${theme} coderef leaked dark VS Code pale yellow`);
+        assert.notEqual(
+          colors.linkCode,
+          "rgb(215, 186, 125)",
+          `${theme} link code leaked dark VS Code pale yellow`,
+        );
+        assert.notEqual(
+          colors.quoteBg,
+          "rgb(34, 34, 34)",
+          `${theme} blockquote leaked dark VS Code background`,
+        );
+      }
+    },
+  );
+
+  await check(
+    "3.3.0 ADR-0003: high-contrast VS Code theme always overrides all new reading themes",
+    async () => {
+      const bg = await page.evaluate(() => {
+        document.body.classList.remove("vscode-dark");
+        document.body.classList.add("vscode-high-contrast");
+        document.documentElement.style.setProperty("--vscode-editor-background", "rgb(0, 0, 0)");
+        const seen = {};
+        for (const theme of ["github-dark", "warm-dark", "solarized-light"]) {
+          document.body.setAttribute("data-reading-theme", theme);
+          seen[theme] = getComputedStyle(document.body).backgroundColor;
+        }
+        return seen;
+      });
+      assert.deepEqual(bg, {
+        "github-dark": "rgb(0, 0, 0)",
+        "warm-dark": "rgb(0, 0, 0)",
+        "solarized-light": "rgb(0, 0, 0)",
+      });
+    },
+  );
+
+  await page.close();
 }
 
 await browser.close();

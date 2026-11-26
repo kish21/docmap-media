@@ -152,9 +152,17 @@ export class FolderMapProvider implements vscode.TreeDataProvider<FolderMapItem>
     try {
       // an open (maybe unsaved) document wins over the file on disk, so the tree matches what the map shows
       const open = vscode.workspace.textDocuments.find((d) => d.uri.toString() === uri.toString());
-      const bytes = open ? undefined : await vscode.workspace.fs.readFile(uri);
-      if (bytes && bytes.byteLength > readConfig().largeFileBytes) return "Very large file — open its map";
-      const text = open ? open.getText() : new TextDecoder().decode(bytes);
+      const limit = readConfig().largeFileBytes;
+      let text: string;
+      if (open) {
+        text = open.getText();
+      } else {
+        const stat = await vscode.workspace.fs.stat(uri);
+        if (stat.size > limit) return "Very large file — open its map";
+        const bytes = await vscode.workspace.fs.readFile(uri);
+        if (bytes.byteLength > limit) return "Very large file — open its map";
+        text = new TextDecoder().decode(bytes);
+      }
       const parsed = this.engine.parse(text, 0, parseSettings()); // the same settings as the map: the same ids
       return parsed.ok ? buildOutline(parsed.document.headings) : "Could not read this file";
     } catch (error) {

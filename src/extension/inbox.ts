@@ -32,7 +32,7 @@ import {
   pathMentions,
   questionsReport,
 } from "../core/insights/items";
-import { dashboardCsv, type PlanRow, type PlanSort, planRow, SORT_LABELS } from "../core/insights/plans";
+import { dashboardCsv, docRow, type PlanRow, type PlanSort, SORT_LABELS } from "../core/insights/plans";
 import { dashboardMarkdown } from "../core/insights/plans-dashboard";
 import { readingOrder, readingOrderMarkdown } from "../core/insights/reading-order";
 import {
@@ -49,7 +49,7 @@ import { conflictsWith, type FactsOfDoc, type KeyFact, keyFacts, relatedTo } fro
 import { deliverPrompt, pickAndDeliver, relativePath } from "./agent";
 import { mapLimit } from "./concurrency";
 import { codeItems } from "./feature-code";
-import { gitUserName, lastAuthor } from "./git";
+import { gitUserName, lastAuthors } from "./git";
 import { isCodeFile } from "./links";
 import { log } from "./log";
 import type { NotesStore } from "./notes";
@@ -66,6 +66,22 @@ import { leftOut, readConfig } from "./settings";
 const GLOB = "**/*.{md,markdown,mdc}";
 /** #43: workspace-state key for when docmap first read this project (ms since epoch). */
 const BASELINE_KEY = "docmap.inboxBaseline";
+/** 3.3.0: compact workspaceState reload cache key (metadata only, never raw file text, bounded by entries + bytes). */
+const CACHE_KEY = "docmap.inboxCache.v1";
+const CACHE_VERSION = 1;
+
+interface PersistedScanEntry {
+  readonly key: string;
+  readonly fsPath: string;
+  readonly rel: string;
+  readonly scan: CachedFileScan;
+}
+
+interface PersistedInboxCache {
+  readonly v: number;
+  readonly staleDays: number;
+  readonly entries: readonly PersistedScanEntry[];
+}
 
 /** #53: minimal facts used for oversized / over-budget files skipped from deep scanning. */
 const EMPTY_FACTS: DocFacts = {
@@ -94,6 +110,7 @@ interface CachedFileScan {
   readonly paths: readonly { readonly path: string; readonly line: number }[];
   readonly claims: readonly Claim[];
   readonly plan?: PlanRow;
+  readonly docRow?: PlanRow;
   /** #55 Precomputed `hardToRead(text)` reason so `home()` needs no full-workspace re-reads. */
   readonly hardToRead?: string;
   /** #55 Pre-extracted code spans so `atlasGraph()` needs no full-workspace re-reads. */
@@ -111,6 +128,8 @@ interface Scanned extends InboxFile {
   readonly doubts?: { readonly mismatches: number; readonly conflicts: number };
   /** 3.0 Plans dashboard: the file's row, when it reads as a plan. */
   readonly plan?: PlanRow;
+  /** 3.3.0: the file's status row for every Markdown doc in the workspace. */
+  readonly docRow?: PlanRow;
   /** 3.0: open tasks and questions (Open Questions, My Items), and the repository files the doc names. */
   readonly items: readonly DocItem[];
   readonly paths: readonly { readonly path: string; readonly line: number }[];
@@ -158,6 +177,8 @@ export class DocsInbox implements vscode.TreeDataProvider<Node>, vscode.Disposab
   private files: Scanned[] = [];
   private dupes: DuplicateGroup[] = [];
   private scanning: Promise<void> | undefined;
+  /** 3.3.0: monotonic counter so a stale background enrichment pass never overwrites a newer scan. */
+  private scanGen = 0;
   private stale = false;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private readonly disposables: vscode.Disposable[] = [];
@@ -166,12 +187,15 @@ export class DocsInbox implements vscode.TreeDataProvider<Node>, vscode.Disposab
   private readonly showAll = new Set<GroupKind>();
   /** #53: per-file scan cache keyed by uri string, validated by (mtime, size, staleDays). */
   private readonly scanCache = new Map<string, CachedFileScan>();
+  /** 3.3.0: true when initial state was hydrated from workspaceState and needs one background refresh. */
+  private hydratedFromCache = false;
 
   /** `memory` (workspace state) keeps when docmap first read this project: files older than that are not "New". */
   constructor(
     private readonly notes: NotesStore,
     private readonly memory?: vscode.Memento,
   ) {
+    this.hydrateFromCache();
     const watcher = vscode.workspace.createFileSystemWatcher(GLOB);
     const later = () => {
       clearTimeout(this.timer);
@@ -197,10 +221,152 @@ export class DocsInbox implements vscode.TreeDataProvider<Node>, vscode.Disposab
   }
 
   dispose(): void {
+    this.scanGen++;
     this.scannedEvents.dispose();
     clearTimeout(this.timer);
     for (const d of this.disposables) d.dispose();
     this.changed.dispose();
+  }
+
+  /** Fast path: reuse already-scanned files when fresh; scan only on first open or after file changes. */
+  private async ensureScanned(): Promise<void> {
+    if (this.hydratedFromCache && this.files.length > 0) {
+      this.hydratedFromCache = false;
+      void this.scan();
+      return;
+    }
+    if (this.files.length === 0 || this.stale) await this.scan();
+  }
+
+  /** 3.3.0: drops the persisted workspaceState reload cache (called by Clear Saved Data). */
+  async clearCache(): Promise<void> {
+    this.scanCache.clear();
+    this.hydratedFromCache = false;
+    await this.memory?.update(CACHE_KEY, undefined);
+  }
+
+  /** 3.3.0: hydrates scanCache and UI state synchronously from workspaceState so reload paints immediately. */
+  private hydrateFromCache(): void {
+    const saved = this.memory?.get<PersistedInboxCache>(CACHE_KEY);
+    if (!saved || saved.v !== CACHE_VERSION || !Array.isArray(saved.entries) || saved.entries.length === 0)
+      return;
+    if (saved.staleDays !== readConfig().staleDays) return;
+    const entries: { uri: vscode.Uri; rel: string; normPath: string; scan: CachedFileScan }[] = [];
+    for (const item of saved.entries.slice(0, INTERNAL_LIMITS.inboxCacheMaxEntries)) {
+      if (!item || typeof item.key !== "string" || typeof item.fsPath !== "string" || !item.scan) continue;
+      const uri = vscode.Uri.file(item.fsPath);
+      this.scanCache.set(item.key, item.scan);
+      entries.push({ uri, rel: item.rel, normPath: path.normalize(item.fsPath), scan: item.scan });
+    }
+    if (entries.length === 0) return;
+    this.applyEntries(entries);
+    this.hydratedFromCache = true;
+    this.stale = true;
+  }
+
+  /** 3.3.0: persists compact scan metadata to workspaceState within strict entry and byte caps. */
+  private persistCache(
+    entries: readonly { uri: vscode.Uri; rel: string; scan: CachedFileScan }[],
+    staleDays: number,
+  ): void {
+    if (!this.memory) return;
+    const sorted = [...entries]
+      .filter((e) => e.uri.scheme === "file")
+      .sort((a, b) => b.scan.mtime - a.scan.mtime)
+      .slice(0, INTERNAL_LIMITS.inboxCacheMaxEntries);
+    const kept: PersistedScanEntry[] = [];
+    let bytes = 64;
+    for (const e of sorted) {
+      const entry: PersistedScanEntry = {
+        key: e.uri.toString(),
+        fsPath: e.uri.fsPath,
+        rel: e.rel,
+        scan: e.scan,
+      };
+      const size = Buffer.byteLength(JSON.stringify(entry), "utf8") + 1;
+      if (bytes + size > INTERNAL_LIMITS.inboxCacheMaxBytes) break;
+      bytes += size;
+      kept.push(entry);
+    }
+    const payload: PersistedInboxCache = { v: CACHE_VERSION, staleDays, entries: kept };
+    void Promise.resolve(this.memory.update(CACHE_KEY, payload)).catch(() => undefined);
+  }
+
+  /** Computes in-memory links, mentions, Scanned files, and duplicate groups from scan entries. */
+  private applyEntries(
+    entries: readonly { uri: vscode.Uri; rel: string; normPath: string; scan: CachedFileScan }[],
+  ): void {
+    const byPath = new Map(entries.map((e) => [e.normPath, e]));
+    const inbound = new Map<string, number>();
+    const missingOf = new Map<string, string[]>();
+    const linksOf = new Map<string, string[]>();
+    for (const e of entries) {
+      if (e.uri.scheme !== "file") continue;
+      const dir = path.dirname(e.uri.fsPath);
+      for (const link of e.scan.facts.mdLinks) {
+        const target = path.normalize(path.resolve(dir, link.replace(/#.*$/, "")));
+        const targetEntry = byPath.get(target);
+        if (targetEntry) {
+          inbound.set(target, (inbound.get(target) ?? 0) + 1);
+          const links = linksOf.get(e.uri.fsPath) ?? [];
+          links.push(targetEntry.rel);
+          linksOf.set(e.uri.fsPath, links);
+        } else {
+          const missing = missingOf.get(e.uri.fsPath) ?? [];
+          missing.push(link);
+          missingOf.set(e.uri.fsPath, missing);
+        }
+      }
+    }
+    this.files = entries.map((e) => {
+      const key = e.uri.toString();
+      const readHash = this.notes.readHash(key);
+      return {
+        id: key,
+        uri: e.uri,
+        rel: e.rel,
+        facts: e.scan.facts,
+        modified: e.scan.mtime,
+        hash: e.scan.hash,
+        ...(readHash !== undefined ? { readHash } : {}),
+        missing: missingOf.get(e.uri.fsPath) ?? [],
+        inbound: inbound.get(e.normPath) ?? 0,
+        instructions: isInstructionFile(e.rel),
+        keyFacts: e.scan.keyFacts,
+        links: linksOf.get(e.uri.fsPath) ?? [],
+        items: e.scan.items,
+        paths: e.scan.paths,
+        codeSpans: e.scan.codeSpans,
+        ...(e.scan.hardToRead ? { hardToRead: e.scan.hardToRead } : {}),
+        ...(e.scan.docRow ? { docRow: e.scan.docRow } : {}),
+        ...(e.scan.plan ? { plan: e.scan.plan } : {}),
+      };
+    });
+    const mentions = new Map<string, Mention[]>();
+    for (const f of this.files) {
+      if (f.uri.scheme !== "file") continue;
+      const dir = path.dirname(f.uri.fsPath);
+      const root = vscode.workspace.getWorkspaceFolder(f.uri)?.uri.fsPath ?? dir;
+      const docDir = path.relative(root, dir);
+      for (const p of f.paths) {
+        const at = { doc: f.uri, rel: f.rel, title: f.facts.title ?? path.basename(f.rel), line: p.line };
+        const targets = [
+          ...pathCandidates(docDir, p.path).map((c) => path.resolve(root, c)),
+          path.resolve(dir, p.path),
+        ];
+        for (const target of new Set(targets)) {
+          const key = path.normalize(target);
+          const list = mentions.get(key) ?? [];
+          if (!list.some((m) => m.doc.toString() === at.doc.toString())) list.push(at);
+          mentions.set(key, list);
+        }
+      }
+    }
+    this.mentions = mentions;
+    this.dupes = duplicateGroups(
+      entries.map((e) => ({ id: e.uri.toString(), signature: e.scan.signature })),
+      INTERNAL_LIMITS.duplicateSimilarity,
+    );
   }
 
   /** Reads every Markdown file again (on demand, and a moment after files change). */
@@ -270,7 +436,7 @@ export class DocsInbox implements vscode.TreeDataProvider<Node>, vscode.Disposab
           } else {
             bytesScanned += stat.size;
             const text = decoder.decode(await vscode.workspace.fs.readFile(uri));
-            const plan = planRow(text, rel, stat.mtime, started, config.staleDays);
+            const doc = docRow(text, rel, stat.mtime, started, config.staleDays);
             const hardReason = hardToRead(text);
             scan = {
               mtime: stat.mtime,
@@ -285,7 +451,8 @@ export class DocsInbox implements vscode.TreeDataProvider<Node>, vscode.Disposab
               claims: claimsIn(text),
               codeSpans: codeSpans(text),
               ...(hardReason ? { hardToRead: hardReason } : {}),
-              ...(plan ? { plan } : {}),
+              docRow: doc,
+              ...(doc.isPlan ? { plan: doc } : {}),
             };
             this.scanCache.set(key, scan);
           }
@@ -301,30 +468,38 @@ export class DocsInbox implements vscode.TreeDataProvider<Node>, vscode.Disposab
       if (!activeKeys.has(key)) this.scanCache.delete(key);
     }
 
-    // links between docs: inbound counts; and which named files are missing on disk
-    const byPath = new Map(entries.map((e) => [e.normPath, e]));
-    const inbound = new Map<string, number>();
-    const missingOf = new Map<string, string[]>();
-    const linksOf = new Map<string, string[]>();
+    const gen = ++this.scanGen;
+    this.hydratedFromCache = false;
+    // Phase 1 (fast): in-memory .md link counts, mentions, and duplicate groups (no disk/repo-code scan yet)
+    this.applyEntries(entries);
+    this.everScanned = true;
+    this.scannedEvents.fire();
+    this.persistCache(entries, config.staleDays);
+    log().info(
+      `docs inbox: ${this.files.length} files (${cachedCount} cached, ${skippedLargeCount} oversized/over-budget skipped), ${this.dupes.length} duplicate groups, ${Date.now() - started} ms`,
+    );
+    this.redraw();
+
+    // Phase 2 (background): disk code-path checks + repo-wide trust/conflict analysis without blocking first paint
+    void this.enrichInBackground(entries, gen).catch((err) => {
+      log().warn(`docs inbox background enrichment failed: ${String(err)}`);
+    });
+  }
+
+  /** Phase 2 background enrichment: checks missing code paths & trust doubts, then redraws if still current. */
+  private async enrichInBackground(
+    entries: readonly { uri: vscode.Uri; rel: string; normPath: string; scan: CachedFileScan }[],
+    gen: number,
+  ): Promise<void> {
+    if (gen !== this.scanGen) return;
+    const extraMissing = new Map<string, string[]>();
     for (const [i, e] of entries.entries()) {
+      if (gen !== this.scanGen) return;
       if (e.uri.scheme !== "file") continue;
       const dir = path.dirname(e.uri.fsPath);
-      for (const link of e.scan.facts.mdLinks) {
-        const target = path.normalize(path.resolve(dir, link.replace(/#.*$/, "")));
-        const targetEntry = byPath.get(target);
-        if (targetEntry) {
-          inbound.set(target, (inbound.get(target) ?? 0) + 1);
-          const links = linksOf.get(e.uri.fsPath) ?? [];
-          links.push(targetEntry.rel);
-          linksOf.set(e.uri.fsPath, links);
-        } else {
-          const missing = missingOf.get(e.uri.fsPath) ?? [];
-          missing.push(link);
-          missingOf.set(e.uri.fsPath, missing);
-        }
-      }
       const root = vscode.workspace.getWorkspaceFolder(e.uri)?.uri.fsPath ?? dir;
       for (const p of e.scan.facts.codePaths.slice(0, INTERNAL_LIMITS.pathChecksPerFile)) {
+        if (gen !== this.scanGen) return;
         const exists =
           isUnchecked(p) ||
           (await anyExists([
@@ -334,84 +509,43 @@ export class DocsInbox implements vscode.TreeDataProvider<Node>, vscode.Disposab
           // a shortened path (`webview/extras.ts` for `src/webview/extras.ts`): the trust markers' file index
           ((await repoFactsFor(e.uri).catch(() => undefined))?.hasPath(p) ?? false);
         if (!exists) {
-          const missing = missingOf.get(e.uri.fsPath) ?? [];
-          missing.push(p);
-          missingOf.set(e.uri.fsPath, missing);
+          const list = extraMissing.get(e.uri.fsPath) ?? [];
+          list.push(p);
+          extraMissing.set(e.uri.fsPath, list);
         }
       }
-      if ((i & 31) === 31) await yieldToEventLoop();
+      if ((i & 15) === 15) await yieldToEventLoop();
     }
-    this.files = entries.map((e) => {
-      const key = e.uri.toString();
-      const readHash = this.notes.readHash(key);
-      return {
-        id: key,
-        uri: e.uri,
-        rel: e.rel,
-        facts: e.scan.facts,
-        modified: e.scan.mtime,
-        hash: e.scan.hash,
-        ...(readHash !== undefined ? { readHash } : {}),
-        missing: missingOf.get(e.uri.fsPath) ?? [],
-        inbound: inbound.get(e.normPath) ?? 0,
-        instructions: isInstructionFile(e.rel),
-        keyFacts: e.scan.keyFacts,
-        links: linksOf.get(e.uri.fsPath) ?? [],
-        items: e.scan.items,
-        paths: e.scan.paths,
-        codeSpans: e.scan.codeSpans,
-        ...(e.scan.hardToRead ? { hardToRead: e.scan.hardToRead } : {}),
-        ...(e.scan.plan ? { plan: e.scan.plan } : {}),
-      };
-    });
-    // 3.0 "Doubtful": paragraphs that do not match the code, or that another doc contradicts (no git here: fast)
+    if (gen !== this.scanGen) return;
+
     const allFacts = this.docRefs();
     const withDoubts: Scanned[] = [];
+    let changedAny = false;
     for (const [i, f] of this.files.entries()) {
+      if (gen !== this.scanGen) return;
       const e = entries[i];
+      const addedMissing = extraMissing.get(f.uri.fsPath);
+      const missing = addedMissing ? [...new Set([...f.missing, ...addedMissing])] : f.missing;
       const claims = e?.scan.claims ?? [];
       const repo = claims.length > 0 ? await repoFactsFor(f.uri).catch(() => undefined) : undefined;
       const mism = repo ? mismatches(claims, repo).length : 0;
       const me = allFacts[i];
       const conf =
         me && f.keyFacts.length > 0 ? conflictsWith(f.keyFacts, relatedTo(me, allFacts)).length : 0;
-      withDoubts.push(mism + conf > 0 ? { ...f, doubts: { mismatches: mism, conflicts: conf } } : f);
-      if ((i & 31) === 31) await yieldToEventLoop();
+      const hasDoubts = mism + conf > 0;
+      if (addedMissing || hasDoubts) changedAny = true;
+      withDoubts.push({
+        ...f,
+        missing,
+        ...(hasDoubts ? { doubts: { mismatches: mism, conflicts: conf } } : {}),
+      });
+      if ((i & 15) === 15) await yieldToEventLoop();
     }
-    this.files = withDoubts;
-    // 3.0 docs ↔ code: which docs name each file (a path is read from the workspace root, then from the doc's
-    // folder and every folder above it: a sub-project's `src/x.js` when a parent folder is the one opened)
-    const mentions = new Map<string, Mention[]>();
-    for (const f of this.files) {
-      if (f.uri.scheme !== "file") continue;
-      const dir = path.dirname(f.uri.fsPath);
-      const root = vscode.workspace.getWorkspaceFolder(f.uri)?.uri.fsPath ?? dir;
-      const docDir = path.relative(root, dir);
-      for (const p of f.paths) {
-        const at = { doc: f.uri, rel: f.rel, title: f.facts.title ?? path.basename(f.rel), line: p.line };
-        const targets = [
-          ...pathCandidates(docDir, p.path).map((c) => path.resolve(root, c)),
-          path.resolve(dir, p.path),
-        ];
-        for (const target of new Set(targets)) {
-          const key = path.normalize(target);
-          const list = mentions.get(key) ?? [];
-          if (!list.some((m) => m.doc.toString() === at.doc.toString())) list.push(at);
-          mentions.set(key, list);
-        }
-      }
+    if (gen !== this.scanGen) return;
+    if (changedAny) {
+      this.files = withDoubts;
+      this.redraw();
     }
-    this.mentions = mentions;
-    this.everScanned = true;
-    this.scannedEvents.fire();
-    this.dupes = duplicateGroups(
-      entries.map((e) => ({ id: e.uri.toString(), signature: e.scan.signature })),
-      INTERNAL_LIMITS.duplicateSimilarity,
-    );
-    log().info(
-      `docs inbox: ${this.files.length} files (${cachedCount} cached, ${skippedLargeCount} oversized/over-budget skipped), ${this.dupes.length} duplicate groups, ${Date.now() - started} ms`,
-    );
-    this.redraw();
   }
 
   /** Read / unread changed (notes): redraw without reading the files again. */
@@ -500,6 +634,11 @@ export class DocsInbox implements vscode.TreeDataProvider<Node>, vscode.Disposab
 
   async getChildren(node?: Node): Promise<Node[]> {
     if (!node) {
+      if (this.hydratedFromCache && this.files.length > 0) {
+        this.hydratedFromCache = false;
+        void this.scan();
+        return this.groups();
+      }
       if (this.files.length === 0) await this.scan();
       return this.groups();
     }
@@ -785,13 +924,13 @@ export class DocsInbox implements vscode.TreeDataProvider<Node>, vscode.Disposab
 
   /** 3.0 Open Questions: every open question in the workspace's docs, by file — a read-only preview page. */
   async openQuestions(open: (doc: vscode.TextDocument) => void): Promise<void> {
-    await this.scan();
+    await this.ensureScanned();
     open(await writeReport("Open questions", questionsReport(this.fileItems(), today())));
   }
 
   /** 3.0 My Items: open tasks and questions that name me (docmap.myNames, else git's user.name). */
   async myItems(open: (doc: vscode.TextDocument) => void): Promise<void> {
-    await this.scan();
+    await this.ensureScanned();
     open(await writeReport("My items", myItemsReport(this.fileItems(), await this.myNames(), today())));
   }
 
@@ -804,15 +943,23 @@ export class DocsInbox implements vscode.TreeDataProvider<Node>, vscode.Disposab
     return fromGit ? [fromGit, `@${fromGit.split(/\s+/)[0]?.toLowerCase() ?? ""}`] : [];
   }
 
-  /** 3.0 agent tools: every scanned doc's text (read again; the scan keeps only what it found). */
+  /** 3.0 agent tools: every scanned doc's text, bounded by per-file and total byte caps. */
   async toolDocs(): Promise<{ file: string; text: string; modified: number }[]> {
     if (this.files.length === 0) await this.scan();
+    const maxFileBytes = Math.min(readConfig().largeFileBytes, INTERNAL_LIMITS.inboxMaxFileBytes);
+    const decoder = new TextDecoder();
+    let totalBytes = 0;
     const out: { file: string; text: string; modified: number }[] = [];
     for (const f of this.files) {
+      if (totalBytes >= INTERNAL_LIMITS.inboxTotalScanBytes) break;
       try {
+        const stat = await vscode.workspace.fs.stat(f.uri);
+        if (stat.size > maxFileBytes || totalBytes + stat.size > INTERNAL_LIMITS.inboxTotalScanBytes)
+          continue;
+        totalBytes += stat.size;
         out.push({
           file: f.rel,
-          text: new TextDecoder().decode(await vscode.workspace.fs.readFile(f.uri)),
+          text: decoder.decode(await vscode.workspace.fs.readFile(f.uri)),
           modified: f.modified,
         });
       } catch {
@@ -836,7 +983,7 @@ export class DocsInbox implements vscode.TreeDataProvider<Node>, vscode.Disposab
     open: (doc: vscode.TextDocument) => void,
     options?: { readonly skipScan?: boolean },
   ): Promise<void> {
-    if (!options?.skipScan) await this.scan();
+    if (!options?.skipScan) await this.ensureScanned();
     const files = this.files.slice(0, INTERNAL_LIMITS.folderMapFiles);
     // #55: reuse cached `hardToRead` from `doScan()` instead of re-reading every Markdown file in parallel
     const docs: HomeDoc[] = files.map((f) => ({
@@ -908,15 +1055,90 @@ export class DocsInbox implements vscode.TreeDataProvider<Node>, vscode.Disposab
     );
   }
 
-  /** Each plan's row plus what only the extension knows: paths it names that are gone, and its last git author. */
+  /** 3.3.0: structured data for the interactive Plans Dashboard webview (all workspace Markdown docs + statuses). */
+  async plansData(rescan = false): Promise<{ rows: PlanRow[]; now: number; sort: PlanSort }> {
+    if (rescan) await this.scan();
+    else await this.ensureScanned();
+    return { rows: await this.allDocRows(), now: Date.now(), sort: this.planSort };
+  }
+
+  /** Every Markdown doc's dashboard row enriched with missing paths and last git author (1 batch git call). */
+  private async allDocRows(): Promise<PlanRow[]> {
+    const docs = this.files.filter((f) => f.docRow).slice(0, INTERNAL_LIMITS.folderMapFiles);
+    const roots = new Set<string>();
+    for (const f of docs) {
+      const root = vscode.workspace.getWorkspaceFolder(f.uri)?.uri.fsPath;
+      if (root) roots.add(root);
+    }
+    const authorsByRoot = new Map<string, Map<string, string>>();
+    await Promise.all(
+      [...roots].map(async (root) => {
+        authorsByRoot.set(root, await lastAuthors(root));
+      }),
+    );
+    return docs.map((f) => {
+      const row = f.docRow as PlanRow;
+      const root = vscode.workspace.getWorkspaceFolder(f.uri)?.uri.fsPath;
+      const rel = root ? path.relative(root, f.uri.fsPath).replace(/\\/g, "/") : "";
+      const lastEditor = root ? authorsByRoot.get(root)?.get(rel) : undefined;
+      return {
+        ...row,
+        ...(f.missing.length > 0 ? { missing: f.missing } : {}),
+        ...(lastEditor ? { lastEditor } : {}),
+      };
+    });
+  }
+
+  /** 3.3.0: update the current sort order for the Plans Dashboard. */
+  setPlanSort(sort: PlanSort): void {
+    this.planSort = sort;
+  }
+
+  /** 3.3.0: export the Plans Dashboard as Markdown or CSV. */
+  async exportPlans(csv: boolean): Promise<void> {
+    if (this.files.length === 0) await this.scan();
+    const rows = await this.planRows();
+    const folder = vscode.workspace.workspaceFolders?.[0]?.uri;
+    const target = await vscode.window.showSaveDialog({
+      ...(folder
+        ? { defaultUri: vscode.Uri.joinPath(folder, csv ? "plans.csv" : "plans-dashboard.md") }
+        : {}),
+      filters: csv ? { CSV: ["csv"] } : { Markdown: ["md"] },
+    });
+    if (!target) return;
+    const text = csv ? dashboardCsv(rows, this.planSort) : dashboardMarkdown(rows, Date.now(), this.planSort);
+    await vscode.workspace.fs.writeFile(target, new TextEncoder().encode(text));
+    void vscode.window.showInformationMessage(
+      `Saved ${rows.length} plans to ${path.basename(target.fsPath)}.`,
+    );
+  }
+
+  /** 3.3.0: hand every plan to the reader's own AI agent for a status report. */
+  async askPlansAgent(): Promise<void> {
+    if (this.files.length === 0) await this.scan();
+    const rows = await this.planRows();
+    await deliverPrompt(buildPrompt("openItems", { files: rows.map((r) => r.file) }));
+  }
+
+  /** Each plan's row plus what only the extension knows: paths it names that are gone, and its last git author (1 batch git call). */
   private async planRows(): Promise<PlanRow[]> {
     const plans = this.files.filter((f) => f.plan).slice(0, INTERNAL_LIMITS.folderMapFiles);
-    return mapLimit(plans, INTERNAL_LIMITS.ioConcurrency, async (f) => {
+    const roots = new Set<string>();
+    for (const f of plans) {
+      const root = vscode.workspace.getWorkspaceFolder(f.uri)?.uri.fsPath;
+      if (root) roots.add(root);
+    }
+    const authorsByRoot = new Map<string, Map<string, string>>();
+    await Promise.all(
+      [...roots].map(async (root) => {
+        authorsByRoot.set(root, await lastAuthors(root));
+      }),
+    );
+    return plans.map((f) => {
       const plan = f.plan as PlanRow;
       const root = vscode.workspace.getWorkspaceFolder(f.uri)?.uri.fsPath;
-      const lastEditor = root
-        ? await lastAuthor(root, path.relative(root, f.uri.fsPath).replace(/\\/g, "/"))
-        : undefined;
+      const rel = root ? path.relative(root, f.uri.fsPath).replace(/\\/g, "/") : "";
+      const lastEditor = root ? authorsByRoot.get(root)?.get(rel) : undefined;
       return {
         ...plan,
         ...(f.missing.length > 0 ? { missing: f.missing } : {}),

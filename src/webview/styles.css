@@ -407,9 +407,13 @@ body {
 .prose code {
   font-family: var(--font-mono);
   font-size: 0.9em;
+  color: var(--code-foreground);
   background: var(--code);
   padding: 0.1em 0.3em;
   border-radius: var(--radius);
+}
+.prose a code {
+  color: inherit;
 }
 .prose pre {
   background: var(--code);
@@ -473,6 +477,30 @@ body {
 .prose hr {
   border: 0;
   border-top: 1px solid var(--border);
+}
+/* Override VS Code's injected _defaultStyles (textBlockQuote/keybindingLabel) so light reading themes never get dark boxes */
+.prose blockquote {
+  margin: 1em 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--border);
+  background: var(--sidebar);
+  color: var(--foreground);
+  border-radius: var(--radius);
+}
+.prose blockquote > :first-child {
+  margin-top: 0;
+}
+.prose blockquote > :last-child {
+  margin-bottom: 0;
+}
+.prose kbd {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  padding: 0.1em 0.35em;
+  background: var(--sidebar);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
 }
 
 /*
@@ -723,17 +751,35 @@ body[data-line-width="wide"] .prose {
 body[data-line-width="full"] .prose {
   padding-inline: var(--space-6);
 }
-/* focus: one calm column — the outline steps aside (› brings it back), generous line height */
+/* focus: one calm column — the outline steps aside (› brings it back), generous line height; only Look stays so you can switch back */
 body[data-reading-theme="focus"] .prose {
   max-width: 70ch;
   line-height: 1.75;
 }
 body[data-reading-theme="focus"] .keypoints {
+  border-bottom: 0;
+  margin-bottom: var(--space-3);
+  padding-bottom: 0;
+}
+body[data-reading-theme="focus"] .kp-tldr,
+body[data-reading-theme="focus"] .kp-chips,
+body[data-reading-theme="focus"] .kp-clean,
+body[data-reading-theme="focus"] .kp-plans,
+body[data-reading-theme="focus"] .kp-atlas,
+body[data-reading-theme="focus"] .kp-compare,
+body[data-reading-theme="focus"] .kp-browser,
+body[data-reading-theme="focus"] .kp-questions,
+body[data-reading-theme="focus"] .kp-source,
+body[data-reading-theme="focus"] .kp-menu {
   display: none;
 }
 
 /* ---------- 2.0: key points strip ---------- */
 /* owner report 2026-11-17: one quiet line — what is true about the file (left), what you can do (right) */
+.prose > .keypoints {
+  /* content-visibility: auto clips the Look popover below the bar (same opt-out as .dm-has-mark) */
+  content-visibility: visible;
+}
 .keypoints {
   margin: 0 0 var(--space-6);
   padding: 0 0 var(--space-3);
@@ -805,6 +851,11 @@ body[data-reading-theme="focus"] .keypoints {
   font-weight: 600;
 }
 .kp-read,
+.kp-look,
+.kp-plans,
+.kp-compare,
+.kp-browser,
+.kp-questions,
 .kp-menu,
 .kp-atlas,
 .kp-source,
@@ -822,6 +873,11 @@ body[data-reading-theme="focus"] .keypoints {
   cursor: pointer;
 }
 .kp-read:hover,
+.kp-look:hover,
+.kp-plans:hover,
+.kp-compare:hover,
+.kp-browser:hover,
+.kp-questions:hover,
 .kp-menu:hover,
 .kp-atlas:hover,
 .kp-source:hover,
@@ -831,8 +887,18 @@ body[data-reading-theme="focus"] .keypoints {
 .dm-hl-button:hover {
   background: var(--hover);
 }
+.kp-icon-btn {
+  min-width: 28px;
+  padding-inline: 7px;
+  text-align: center;
+}
 :is(
   .kp-read,
+  .kp-look,
+  .kp-plans,
+  .kp-compare,
+  .kp-browser,
+  .kp-questions,
   .kp-menu,
   .kp-atlas,
   .kp-source,
@@ -840,10 +906,216 @@ body[data-reading-theme="focus"] .keypoints {
   .slide-bar button,
   .dm-copy,
   .dm-hl-button,
-  .section-menu
+  .section-menu,
+  .dm-swatch,
+  .dm-seg-btn
 ):focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 1px;
+}
+
+/* ---------- 3.3.0: in-page Reading Look popover (swatches + size + width, flat native VS Code) ---------- */
+.kp-look-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.kp-look {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.kp-look-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--background);
+}
+.kp-look-dot[data-theme="paper"] {
+  background: var(--swatch-paper-bg);
+  border-color: var(--swatch-paper-accent);
+}
+.kp-look-dot[data-theme="github"] {
+  background: var(--swatch-github-bg);
+  border-color: var(--swatch-github-accent);
+}
+.kp-look-dot[data-theme="github-dark"] {
+  background: var(--swatch-github-dark-bg);
+  border-color: var(--swatch-github-dark-accent);
+}
+.kp-look-dot[data-theme="night"] {
+  background: var(--swatch-night-bg);
+  border-color: var(--swatch-night-accent);
+}
+.kp-look-dot[data-theme="warm-dark"] {
+  background: var(--swatch-warm-dark-bg);
+  border-color: var(--swatch-warm-dark-accent);
+}
+.kp-look-dot[data-theme="solarized-light"] {
+  background: var(--swatch-solarized-light-bg);
+  border-color: var(--swatch-solarized-light-accent);
+}
+.dm-look-pop {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  z-index: 40;
+  width: min(320px, calc(100vw - var(--space-6)));
+  padding: var(--space-3);
+  background: var(--sidebar);
+  color: var(--sidebar-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+}
+.dm-look-pop[hidden] {
+  display: none;
+}
+.dm-look-heading {
+  font-size: var(--text-caption);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+  margin: var(--space-3) 0 var(--space-1);
+}
+.dm-look-heading:first-child {
+  margin-top: 0;
+}
+.dm-look-hc-note {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-caption);
+  color: var(--muted-foreground);
+}
+.dm-swatches {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+.dm-swatch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 30px;
+  padding: var(--space-1) var(--space-2);
+  background: var(--background);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: var(--text-sm);
+  text-align: left;
+  cursor: pointer;
+}
+.dm-swatch:hover {
+  background: var(--hover);
+}
+.dm-swatch[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: var(--active);
+  color: var(--active-foreground);
+  font-weight: 600;
+}
+.dm-swatch-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  padding: 1px 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--background);
+  color: var(--foreground);
+  font-size: var(--text-caption);
+  line-height: 1.2;
+}
+.dm-swatch-accent {
+  display: inline-block;
+  width: 3px;
+  height: 10px;
+  border-radius: 1px;
+  background: var(--primary);
+}
+.dm-swatch[data-theme="paper"] .dm-swatch-chip {
+  background: var(--swatch-paper-bg);
+  color: var(--swatch-paper-fg);
+}
+.dm-swatch[data-theme="paper"] .dm-swatch-accent {
+  background: var(--swatch-paper-accent);
+}
+.dm-swatch[data-theme="github"] .dm-swatch-chip {
+  background: var(--swatch-github-bg);
+  color: var(--swatch-github-fg);
+}
+.dm-swatch[data-theme="github"] .dm-swatch-accent {
+  background: var(--swatch-github-accent);
+}
+.dm-swatch[data-theme="github-dark"] .dm-swatch-chip {
+  background: var(--swatch-github-dark-bg);
+  color: var(--swatch-github-dark-fg);
+}
+.dm-swatch[data-theme="github-dark"] .dm-swatch-accent {
+  background: var(--swatch-github-dark-accent);
+}
+.dm-swatch[data-theme="night"] .dm-swatch-chip {
+  background: var(--swatch-night-bg);
+  color: var(--swatch-night-fg);
+}
+.dm-swatch[data-theme="night"] .dm-swatch-accent {
+  background: var(--swatch-night-accent);
+}
+.dm-swatch[data-theme="warm-dark"] .dm-swatch-chip {
+  background: var(--swatch-warm-dark-bg);
+  color: var(--swatch-warm-dark-fg);
+}
+.dm-swatch[data-theme="warm-dark"] .dm-swatch-accent {
+  background: var(--swatch-warm-dark-accent);
+}
+.dm-swatch[data-theme="solarized-light"] .dm-swatch-chip {
+  background: var(--swatch-solarized-light-bg);
+  color: var(--swatch-solarized-light-fg);
+}
+.dm-swatch[data-theme="solarized-light"] .dm-swatch-accent {
+  background: var(--swatch-solarized-light-accent);
+}
+.dm-swatch-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dm-seg-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+.dm-seg-btn {
+  min-height: 28px;
+  padding: 2px var(--space-1);
+  background: var(--background);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font: inherit;
+  font-size: var(--text-caption);
+  cursor: pointer;
+}
+.dm-seg-btn:hover {
+  background: var(--hover);
+}
+.dm-seg-btn[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: var(--active);
+  color: var(--active-foreground);
+  font-weight: 600;
+}
+@container (max-width: 600px) {
+  .dm-look-pop {
+    left: 0;
+    right: auto;
+  }
 }
 
 /* ---------- 2.0: headings — changed, review marks, ⋯ menu ---------- */
@@ -943,12 +1215,13 @@ mark.dm-hl-note::after {
 
 /* ---------- 2026-11-22: clickable code names, ▶ Terminal ---------- */
 .prose code.dm-coderef {
+  color: var(--primary);
   cursor: pointer;
   text-decoration: underline dotted;
   text-underline-offset: 3px;
 }
 .prose code.dm-coderef:hover {
-  color: var(--primary);
+  text-decoration-style: solid;
 }
 .prose code.dm-coderef:focus-visible {
   outline: 2px solid var(--ring);
@@ -1092,8 +1365,17 @@ mark.dm-hl-note::after {
   color: var(--primary);
 }
 .dm-mark-ghost {
-  opacity: 0.5;
+  color: var(--primary);
+  background: var(--active);
+  border-width: 1.5px;
   border-style: dashed;
+  line-height: 19px;
+}
+.dm-mark-ghost:hover,
+.dm-mark-ghost:focus-visible {
+  background: var(--primary);
+  color: var(--background);
+  border-style: solid;
 }
 /* a thin bar in the margin beside a doubtful block (a few pixels clear of the text) */
 .prose > [data-trust="mismatch"]::after,
@@ -1338,23 +1620,23 @@ mark.dm-hl-note::after {
 .kp-clean:focus-visible {
   outline: 2px solid var(--ring);
 }
-/* syntax colours: from the theme's own palette where VS Code provides one */
+/* syntax colours: from the active reading theme (or VS Code's palette in native mode) */
 .prose .tk-comment {
-  color: var(--vscode-editorCodeLens-foreground, var(--muted-foreground));
+  color: var(--tk-comment);
   font-style: italic;
 }
 .prose .tk-string {
-  color: var(--vscode-debugTokenExpression-string, var(--warning));
+  color: var(--tk-string);
 }
 .prose .tk-number {
-  color: var(--vscode-debugTokenExpression-number, var(--primary));
+  color: var(--tk-number);
 }
 .prose .tk-keyword {
-  color: var(--vscode-debugTokenExpression-name, var(--primary));
+  color: var(--tk-keyword);
   font-weight: 600;
 }
 .prose .tk-function {
-  color: var(--vscode-symbolIcon-functionForeground, var(--foreground));
+  color: var(--tk-function);
 }
 /* a checklist's progress line goes wherever its list goes: folded or skimmed away together */
 .prose > .dm-progressline:has(+ [data-collapsed-content]),

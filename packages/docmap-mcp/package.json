@@ -1,0 +1,38 @@
+{
+  "name": "docmap-mcp",
+  "version": "3.3.0",
+  "description": "Local stdio MCP server and agent skill for reading Markdown docs (plans, open questions, outlines, repo path checks) — zero runtime dependencies, zero network, zero telemetry.",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "docmap-mcp": "bin/docmap-mcp.mjs"
+  },
+  "files": [
+    "bin/docmap-mcp.mjs",
+    "SKILL.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "mcp",
+    "markdown",
+    "docmap",
+    "agent",
+    "skill",
+    "claude",
+    "cursor",
+    "antigravity"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kish21/markdown-docmap.git",
+    "directory": "packages/docmap-mcp"
+  },
+  "homepage": "https://kish21.github.io/docmap-help/",
+  "bugs": {
+    "url": "https://github.com/kish21/markdown-docmap/issues"
+  }
+}

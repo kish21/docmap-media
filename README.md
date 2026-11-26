@@ -91,7 +91,7 @@ chat, or the clipboard for Claude Code, Cursor and others). Two more levels, **o
 ## New in 2.0
 
 ### Docs Inbox: get through hundreds of Markdown files
-In the Explorer sidebar, **Docs Inbox** sorts every Markdown file in your folder:
+In the **docmap** Activity Bar sidebar, **Docs Inbox** sorts every Markdown file in your folder:
 - **Changed since you read** and **New** (added in the last 7 days, not opened), like an email inbox. Tool folders
   (names starting with a dot, such as `.agents`) are left out; each group shows 10 files, then **Show all**.
 - **Worth reading first**: files with open tasks, decisions, warnings, or that other docs point to.

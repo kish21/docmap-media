@@ -51,7 +51,7 @@ jobs:
       - name: Package the .vsix (only dist, manifest and docs may ship)
         run: |
           npx vsce ls --no-dependencies | tee "$RUNNER_TEMP/vsix-files.txt"
-          if grep -vE '^(dist/(extension|webview|atlas)\.js(\.map)?|dist/mcp\.js|dist/(tokens|styles|atlas)\.css|package\.json|README\.md|HELP\.md|LICENSE|CHANGELOG\.md|dist/mermaid\.js|media/docmap-icons\.woff|media/walkthrough/[a-z]+\.md|media/icon\.png)$' "$RUNNER_TEMP/vsix-files.txt"; then
+          if grep -vE '^(dist/(extension|webview|atlas|plans)\.js(\.map)?|dist/mcp\.js|dist/(tokens|styles|atlas|plans)\.css|package\.json|README\.md|HELP\.md|LICENSE|CHANGELOG\.md|dist/mermaid\.js|media/activity-bar\.svg|media/docmap-icons\.woff|media/walkthrough/[a-z]+\.md|media/icon\.png)$' "$RUNNER_TEMP/vsix-files.txt"; then
             echo "Unexpected file in the .vsix (above)"; exit 1
           fi
           npx vsce package --no-dependencies

@@ -408,6 +408,12 @@ export class MapPanel {
         if (!isReport(this.document.uri))
           await vscode.commands.executeCommand("docmap.docAtlas", { atlasFor: this.document.uri });
         return;
+      case "openPlans":
+        await vscode.commands.executeCommand("docmap.plansDashboard");
+        return;
+      case "openQuestions":
+        await vscode.commands.executeCommand("docmap.openQuestions");
+        return;
       case "showSource":
         if (this.mode === "page")
           await vscode.commands.executeCommand("docmap.showSource", this.document.uri);
@@ -473,6 +479,16 @@ export class MapPanel {
           .getConfiguration("docmap")
           .update("cleanView", message.on, vscode.ConfigurationTarget.Global);
         return;
+      case "setLook": {
+        const cfg = vscode.workspace.getConfiguration("docmap");
+        if (message.theme !== undefined)
+          await cfg.update("theme", message.theme, vscode.ConfigurationTarget.Global);
+        if (message.fontScale !== undefined)
+          await cfg.update("fontScale", message.fontScale, vscode.ConfigurationTarget.Global);
+        if (message.lineWidth !== undefined)
+          await cfg.update("lineWidth", message.lineWidth, vscode.ConfigurationTarget.Global);
+        return;
+      }
       case "openInBrowser":
         if (!(await this.reattach())) return;
         // the same command as the editor-title button: the live page by default, else the saved copy
@@ -1252,7 +1268,51 @@ export class MapPanel {
     }
     const marked = Object.keys(reviews).length;
     const comments = (MapPanel.notes?.highlights(this.key) ?? []).filter((h) => h.note).length;
-    items.push({ label: "This file", kind: vscode.QuickPickItemKind.Separator });
+    if (!section) {
+      items.push({ label: "This doc", kind: vscode.QuickPickItemKind.Separator });
+      if (!isReport(this.document.uri)) {
+        items.push({
+          label: "$(checklist) Check against the code",
+          detail: "Find file paths this doc names that no longer exist in the repo",
+          run: async () => {
+            await vscode.commands.executeCommand("docmap.checkDesign", this.document.uri);
+          },
+        });
+      }
+      if (this.mode === "page") {
+        items.push({
+          label: "$(edit) Show source",
+          detail: "Switch this tab back to the Markdown text (Ctrl+Alt+V)",
+          run: async () => {
+            await vscode.commands.executeCommand("docmap.showSource", this.document.uri);
+          },
+        });
+      }
+      const cleanOn = readConfig().cleanView;
+      items.push({
+        label: cleanOn ? "$(eye) Clean view: Turn off" : "$(eye) Clean view: Turn on",
+        detail: cleanOn
+          ? "Show the file as written instead of the laid-out view"
+          : "Lay the page out neatly (cards, callouts, progress)",
+        run: async () => {
+          await vscode.workspace
+            .getConfiguration("docmap")
+            .update("cleanView", !cleanOn, vscode.ConfigurationTarget.Global);
+        },
+      });
+      // #48 (owner pick 2026-11-21): slides moved off the page's top bar into this menu
+      if (slides)
+        items.push({
+          label: "$(play) Show as slides",
+          detail: "The sections between --- lines, one at a time ( ← → , Esc )",
+          run: () => {
+            const rendered = this.lastByType.get("render");
+            if (rendered?.type === "render")
+              this.post({ type: "showSlides", docVersion: rendered.docVersion });
+          },
+        });
+    }
+    items.push({ label: "Review & AI", kind: vscode.QuickPickItemKind.Separator });
     if (marked > 0 || comments > 0) {
       const parts = [
         marked ? `${marked} section${marked === 1 ? "" : "s"}` : "",
@@ -1266,25 +1326,41 @@ export class MapPanel {
     if (!isReport(this.document.uri))
       items.push({ label: "$(verified) Sign off this version…", run: () => this.signOff() });
     items.push({ label: "$(sparkle) Ask my AI agent about this file…", run: () => this.askAboutFile() });
-    if (!section)
+    if (!section) {
       items.push({
         label: "$(copy) Copy for my AI…",
         detail: "This doc and the linked docs you pick, as one text to paste into any AI chat",
         run: () => copyForAgent(this.document),
       });
-    // #48 (owner pick 2026-11-21): slides moved off the page's top bar into this menu
-    if (slides && !section)
-      items.push({
-        label: "$(play) Show as slides",
-        detail: "The sections between --- lines, one at a time ( ← → , Esc )",
-        run: () => {
-          const rendered = this.lastByType.get("render");
-          if (rendered?.type === "render") this.post({ type: "showSlides", docVersion: rendered.docVersion });
-        },
-      });
-    if (!section)
       items.push(
-        { label: "", kind: vscode.QuickPickItemKind.Separator },
+        { label: "Export", kind: vscode.QuickPickItemKind.Separator },
+        {
+          label: "$(file-code) Export as HTML…",
+          run: async () => {
+            await vscode.commands.executeCommand("docmap.exportHtml", this.document.uri);
+          },
+        },
+        {
+          label: "$(file-pdf) Export as PDF (Print)…",
+          run: async () => {
+            await vscode.commands.executeCommand("docmap.exportPdf", this.document.uri);
+          },
+        },
+        { label: "Workspace views", kind: vscode.QuickPickItemKind.Separator },
+        {
+          label: "$(home) Home",
+          detail: "What's going on in this project",
+          run: async () => {
+            await vscode.commands.executeCommand("docmap.home");
+          },
+        },
+        {
+          label: "$(search) Search All Docs…",
+          detail: "Find text across every Markdown file",
+          run: async () => {
+            await vscode.commands.executeCommand("docmap.searchDocs");
+          },
+        },
         {
           label: "$(compass) What can docmap do?",
           detail: "Every docmap command, by what you want to do",
@@ -1293,6 +1369,7 @@ export class MapPanel {
           },
         },
       );
+    }
     const pick = await vscode.window.showQuickPick(items, { title: section?.title ?? this.fileName });
     await pick?.run?.();
   }

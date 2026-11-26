@@ -1,5 +1,32 @@
 # What's new
 
+## 3.3.0 — UX discoverability, dedicated sidebar, and first-class reading themes
+
+- **Dedicated docmap Activity Bar sidebar:** brings **Quick Launch** (labeled one-click items for Home, Plans Dashboard,
+  Doc Atlas, Open Questions, Search All Docs, and New Doc from Template), **Docs Inbox**, and **Markdown Files** into one
+  clean sidebar container, removing duplicate views from Explorer and decluttering the Docs Inbox title bar.
+- **Redesigned preview top bar & categorized `⋯ More` menu:** brings **Look: `<Theme>`**, **Clean view**, **Plans**,
+  **Atlas**, **Compare**, **🌐** (Open in Browser), **?** (Open Questions), and **⋯ More** into one clean bar, with
+  `⋯ More` grouped into **This doc** (Check against the code, Show source, Clean view, Slides), **Review & AI**,
+  **Export** (HTML / PDF), and **Workspace views** (Home, Search All Docs, What can docmap do?).
+- **Interactive Plans Dashboard & polished Doc Atlas:** Plans Dashboard now opens as an interactive view showing all
+  workspace Markdown docs and their statuses with `<progress>` bars, relative paths, and a **Plans only** filter pill.
+  Doc Atlas adds a **Features / All docs** sidebar toggle, `← Back` header button, clickable `+N more` nodes, a bottom
+  **Legend** (`Current`, `Feature`, `Doc`, `Code`), and collision-free vertical layout.
+- **1-click Look popover & 3 new reading themes:** switch themes with visual swatches, adjust Text Size (`90%`–`130%`),
+  and pick Line Width (`Narrow`–`Full`) directly on the page (works in VS Code and browser snapshots). Adds **GitHub Dark**,
+  **Warm Dark**, and **Solarized Light** alongside the 5 existing themes — all WCAG-AA checked, with VS Code high-contrast
+  themes always winning.
+- **Standalone `docmap-mcp` npx package & `SKILL.md`:** packages docmap's local stdio MCP server (`docmap_plans`,
+  `docmap_open_questions`, `docmap_outline`, `docmap_check_doc`) into `packages/docmap-mcp/` with zero runtime
+  dependencies, zero network/telemetry, read-only folder confinement, and a ready-to-use `SKILL.md` + setup snippets for
+  Claude Desktop, Claude Code, Cursor, and Antigravity.
+- **Read-only Chrome MV3 extension (`src/chrome/` → `dist-chrome/`):** shares `src/core/` (zero `vscode` imports,
+  zero permissions, zero network/telemetry, `html: false` XSS-safe rendering). Renders local `.md` / `.markdown` files
+  with the full navigable outline, Quick read, fold/levels, all 8 Look themes, lazy-loaded Mermaid diagrams, and
+  copy-only **Ask AI** prompts; also injects a collapsible docmap outline sidebar beside GitHub `.markdown-body` README
+  and Markdown pages with clean teardown across GitHub SPA navigations (`turbo:load` / `pjax:end`).
+
 ## 3.2.2 — enterprise readiness, big-workspace speed, and public open-source releases
 
 - **Zero-cost startup (#52):** docmap no longer scans every Markdown file when VS Code opens — **Home on Start** is now

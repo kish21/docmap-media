@@ -110,11 +110,29 @@ describe("2.0 messages", () => {
     expect(isWebviewToHost({ type: "statusMenu", docVersion: 2, line: 4, column: 1.5 })).toBe(false);
     expect(isWebviewToHost({ type: "statusMenu", docVersion: 2, line: 4 })).toBe(false);
   });
+  it("3.3.0 setLook: accepts valid theme/fontScale/lineWidth updates and rejects invalid ones", async () => {
+    const { isWebviewToHost } = await import("./messages");
+    expect(isWebviewToHost({ type: "setLook", theme: "github-dark" })).toBe(true);
+    expect(isWebviewToHost({ type: "setLook", theme: "warm-dark", fontScale: 1.15, lineWidth: "wide" })).toBe(
+      true,
+    );
+    expect(isWebviewToHost({ type: "setLook", fontScale: 0.9 })).toBe(true);
+    expect(isWebviewToHost({ type: "setLook", lineWidth: "narrow" })).toBe(true);
+    expect(isWebviewToHost({ type: "setLook" })).toBe(false);
+    expect(isWebviewToHost({ type: "setLook", theme: "neon" })).toBe(false);
+    expect(isWebviewToHost({ type: "setLook", fontScale: 0.5 })).toBe(false);
+    expect(isWebviewToHost({ type: "setLook", fontScale: 2.5 })).toBe(false);
+    expect(isWebviewToHost({ type: "setLook", fontScale: Number.NaN })).toBe(false);
+    expect(isWebviewToHost({ type: "setLook", lineWidth: "huge" })).toBe(false);
+  });
   it("validates page extras", async () => {
     const { isPageExtras } = await import("./messages");
     expect(
       isPageExtras({ look: { theme: "paper", fontScale: 1.1, lineWidth: "wide" }, changed: ["a"] }),
     ).toBe(true);
+    for (const theme of ["github-dark", "warm-dark", "solarized-light"]) {
+      expect(isPageExtras({ look: { theme, fontScale: 1, lineWidth: "normal" } })).toBe(true);
+    }
     expect(isPageExtras({ look: { theme: "neon", fontScale: 1, lineWidth: "wide" } })).toBe(false);
     expect(isPageExtras({ reviews: [{ headingId: "a", mark: "maybe" }] })).toBe(false);
     expect(isPageExtras({ keyPoints: { tasksOpen: -1, tasksDone: 0, decisions: 0, warnings: 0 } })).toBe(
@@ -151,5 +169,21 @@ describe("easy reading messages (2026-11-24): well-formed only", () => {
     expect(isPageExtras({ standing })).toBe(true);
     expect(isPageExtras({ standing: { ...standing, disagree: [1] } })).toBe(false);
     expect(isPageExtras({ standing: { ...standing, parts: "no" } })).toBe(false);
+  });
+});
+
+describe("3.3.0 interactive Plans Dashboard messages", () => {
+  it("accepts valid plansOpen, plansAction, and plansSort messages and rejects invalid ones", async () => {
+    const { isPlansToHost } = await import("./messages");
+    expect(isPlansToHost({ type: "plansOpen", kind: "doc", file: "docs/plan.md" })).toBe(true);
+    expect(isPlansToHost({ type: "plansOpen", kind: "browser", file: "PLAN.md" })).toBe(true);
+    expect(isPlansToHost({ type: "plansOpen", kind: "shell", file: "PLAN.md" })).toBe(false);
+    expect(isPlansToHost({ type: "plansOpen", kind: "doc", file: "" })).toBe(false);
+    expect(isPlansToHost({ type: "plansAction", action: "refresh" })).toBe(true);
+    expect(isPlansToHost({ type: "plansAction", action: "exportCsv" })).toBe(true);
+    expect(isPlansToHost({ type: "plansAction", action: "deleteAll" })).toBe(false);
+    expect(isPlansToHost({ type: "plansSort", sort: "attention" })).toBe(true);
+    expect(isPlansToHost({ type: "plansSort", sort: "progress" })).toBe(true);
+    expect(isPlansToHost({ type: "plansSort", sort: "random" })).toBe(false);
   });
 });

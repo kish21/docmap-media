@@ -205,4 +205,50 @@ describe("drawDiagrams lazy rendering (#56)", () => {
     expect(renderSpy).toHaveBeenCalledTimes(1);
     expect(block.pre.classList.contains("mermaid-diagram")).toBe(true);
   });
+
+  it("uses dark Mermaid theme for dark reading themes and lets VS Code high-contrast win (ADR-0003)", async () => {
+    (
+      globalThis.document.documentElement as unknown as { hasAttribute: (n: string) => boolean }
+    ).hasAttribute = (n: string) => n === "data-autoprint";
+    const bodyClasses = new Set<string>(["vscode-light"]);
+    let readingTheme = "github-dark";
+    (globalThis.document as unknown as { body: unknown }).body = {
+      dataset: { diagrams: "mermaid.js" },
+      classList: { contains: (c: string) => bodyClasses.has(c) },
+      getAttribute: (n: string) => (n === "data-reading-theme" ? readingTheme : null),
+    };
+
+    const block1 = makeBlock("graph TD\n  DarkTheme1 --> DarkTheme2");
+    drawDiagrams({ querySelectorAll: () => [block1.code] } as unknown as HTMLElement);
+    await flushMicrotasks();
+    expect(initSpy).toHaveBeenLastCalledWith({
+      startOnLoad: false,
+      securityLevel: "strict",
+      theme: "dark",
+    });
+
+    // High-contrast light must override dark reading theme
+    bodyClasses.add("vscode-high-contrast-light");
+    const block2 = makeBlock("graph TD\n  HCLight1 --> HCLight2");
+    drawDiagrams({ querySelectorAll: () => [block2.code] } as unknown as HTMLElement);
+    await flushMicrotasks();
+    expect(initSpy).toHaveBeenLastCalledWith({
+      startOnLoad: false,
+      securityLevel: "strict",
+      theme: "default",
+    });
+
+    // Light reading theme overrides vscode-dark when not high-contrast
+    bodyClasses.clear();
+    bodyClasses.add("vscode-dark");
+    readingTheme = "solarized-light";
+    const block3 = makeBlock("graph TD\n  SolLight1 --> SolLight2");
+    drawDiagrams({ querySelectorAll: () => [block3.code] } as unknown as HTMLElement);
+    await flushMicrotasks();
+    expect(initSpy).toHaveBeenLastCalledWith({
+      startOnLoad: false,
+      securityLevel: "strict",
+      theme: "default",
+    });
+  });
 });

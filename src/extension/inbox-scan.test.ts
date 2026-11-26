@@ -46,15 +46,28 @@ const mocks = vi.hoisted(() => {
   });
 
   const lastAuthor = vi.fn(async () => "dev");
+  const lastAuthors = vi.fn(async () => new Map<string, string>());
   const repoFactsFor = vi.fn(async () => undefined);
 
-  return { files, findFiles, stat, readFile, lastAuthor, repoFactsFor, Emitter, disposable, makeUri };
+  return {
+    files,
+    findFiles,
+    stat,
+    readFile,
+    lastAuthor,
+    lastAuthors,
+    repoFactsFor,
+    Emitter,
+    disposable,
+    makeUri,
+  };
 });
 
 vi.mock("./git", () => ({
   uncommittedFilesHere: vi.fn(async () => []),
   gitUserName: vi.fn(async () => undefined),
   lastAuthor: mocks.lastAuthor,
+  lastAuthors: mocks.lastAuthors,
 }));
 
 vi.mock("./repo-facts", () => ({
@@ -384,27 +397,81 @@ describe("#55 DocsInbox home(), atlasGraph(), and planRows() bounded I/O and cac
     inbox.dispose();
   });
 
-  it("plansDashboard() bounds concurrent git log calls in planRows()", async () => {
+  it("plansDashboard() batches git authors in 1 lastAuthors() call instead of N+1 lastAuthor() spawns", async () => {
     for (let i = 0; i < 20; i++) {
       addDoc(`plans/plan-${i}.md`, `# Plan ${i}\n\n- [ ] Task A\n- [x] Task B\n`);
     }
-
-    let inFlight = 0;
-    let maxInFlight = 0;
-    mocks.lastAuthor.mockImplementation(async () => {
-      inFlight++;
-      maxInFlight = Math.max(maxInFlight, inFlight);
-      await new Promise((r) => setTimeout(r, 15));
-      inFlight--;
-      return "alice";
-    });
+    mocks.lastAuthors.mockResolvedValue(new Map([["plans/plan-0.md", "alice"]]));
 
     const inbox = new DocsInbox(makeNotes());
     await inbox.plansDashboard(() => undefined);
 
-    expect(mocks.lastAuthor).toHaveBeenCalledTimes(20);
-    expect(maxInFlight).toBeLessThanOrEqual(INTERNAL_LIMITS.ioConcurrency);
-    expect(maxInFlight).toBeGreaterThan(1);
+    expect(mocks.lastAuthors).toHaveBeenCalledTimes(1);
+    expect(mocks.lastAuthor).not.toHaveBeenCalled();
+    inbox.dispose();
+  });
+
+  it("3.3.0 workspaceState reload cache: hydrates immediately on reload and only re-reads changed files", async () => {
+    for (let i = 0; i < 10; i++) {
+      addDoc(`docs/doc-${i}.md`, makeNormalDoc(i), 1_700_000_000_000 + i);
+    }
+    const store = new Map<string, unknown>();
+    const memory = {
+      keys: () => [...store.keys()],
+      get: <T>(key: string) => store.get(key) as T | undefined,
+      update: vi.fn(async (key: string, value: unknown) => {
+        if (value === undefined) store.delete(key);
+        else store.set(key, value);
+      }),
+    };
+
+    const first = new DocsInbox(makeNotes(), memory as never);
+    await first.scan();
+    expect(mocks.readFile).toHaveBeenCalledTimes(10);
+    expect(store.has("docmap.inboxCache.v1")).toBe(true);
+    first.dispose();
+
+    // Simulate VS Code reload: brand new DocsInbox instance with the same workspaceState
+    mocks.readFile.mockClear();
+    const second = new DocsInbox(makeNotes(), memory as never);
+    // Hydrated synchronously: Plans Dashboard returns all 10 cached docs immediately
+    const data = await second.plansData(false);
+    expect(data.rows).toHaveLength(10);
+    // Wait for background refresh to finish — unchanged files must not be re-read
+    await second.scan();
+    expect(mocks.readFile).toHaveBeenCalledTimes(0);
+
+    // Mutate 1 file: only that 1 file is re-read
+    addDoc("docs/doc-0.md", `${makeNormalDoc(0)}\n- [ ] Added task\n`, 1_800_000_000_000);
+    await second.scan();
+    expect(mocks.readFile).toHaveBeenCalledTimes(1);
+
+    await second.clearCache();
+    expect(store.has("docmap.inboxCache.v1")).toBe(false);
+    second.dispose();
+  });
+
+  it("3.3.0 progressive scan: Docs Inbox and Plans Dashboard do not block on slow repoFactsFor()", async () => {
+    for (let i = 0; i < 20; i++) {
+      addDoc(`docs/doc-${i}.md`, `# Doc ${i}\n\nMentions \`src/mod-${i}.ts\`.\n\n- [ ] Open task\n`);
+    }
+    // Simulate a slow repo-wide code index (2 seconds)
+    mocks.repoFactsFor.mockImplementation(
+      () => new Promise((resolve) => setTimeout(() => resolve(undefined), 2000)),
+    );
+    mocks.lastAuthors.mockResolvedValue(new Map([["docs/doc-0.md", "alice"]]));
+
+    const inbox = new DocsInbox(makeNotes());
+    const t0 = performance.now();
+    await inbox.scan();
+    const scanMs = performance.now() - t0;
+    expect(scanMs).toBeLessThan(1000);
+
+    const data = await inbox.plansData(false);
+    expect(data.rows).toHaveLength(20);
+    expect(data.rows.find((r) => r.file === "docs/doc-0.md")?.lastEditor).toBe("alice");
+    expect(mocks.lastAuthors).toHaveBeenCalledTimes(1);
+    expect(mocks.lastAuthor).not.toHaveBeenCalled();
     inbox.dispose();
   });
 });

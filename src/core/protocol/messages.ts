@@ -6,6 +6,7 @@
  * Units: `line` 0-based source line · `docVersion` VS Code TextDocument.version · `bytes` UTF-8 length.
  */
 import type { CodePeek } from "../insights/code-peek";
+import type { PlanSort } from "../insights/plans";
 import type { Standing } from "../insights/standing";
 import type { Heading } from "../outline/types";
 
@@ -55,7 +56,15 @@ export type HostToWebview =
   /** Easy reading: the code for a name or link the reader points at (absent peek: nothing to show). */
   | { readonly type: "codePeek"; readonly text: string; readonly peek?: CodePeek };
 
-export type ReadingTheme = "vscode" | "paper" | "github" | "night" | "focus";
+export type ReadingTheme =
+  | "vscode"
+  | "paper"
+  | "github"
+  | "github-dark"
+  | "night"
+  | "warm-dark"
+  | "solarized-light"
+  | "focus";
 export type LineWidth = "narrow" | "normal" | "wide" | "full";
 export type ReviewMark = "approve" | "question" | "change";
 
@@ -200,6 +209,10 @@ export type WebviewToHost =
   | { readonly type: "peekCode"; readonly text: string }
   /** Easy reading: open the Doc Atlas beside this doc, centred on it. */
   | { readonly type: "openAtlas" }
+  /** 3.3.0: open the workspace Plans Dashboard from the preview top bar. */
+  | { readonly type: "openPlans" }
+  /** 3.3.0: open the workspace Open Questions view from the preview top bar. */
+  | { readonly type: "openQuestions" }
   /** Owner report 2026-11-24: "Show source" on a file's page — the file's text in this tab, at this section. */
   | { readonly type: "showSource" }
   /** 2026-11-22 review: "▶ Terminal" on a shell block — put its commands in the terminal, never press Enter. */
@@ -213,6 +226,13 @@ export type WebviewToHost =
   | { readonly type: "blockMenu"; readonly block: number }
   /** 3.0: the reader switched Clean view on or off ("Show as written"). */
   | { readonly type: "setClean"; readonly on: boolean }
+  /** 3.3: the reader picked a reading theme, text size or line width from the in-page Look popover. */
+  | {
+      readonly type: "setLook";
+      readonly theme?: ReadingTheme;
+      readonly fontScale?: number;
+      readonly lineWidth?: LineWidth;
+    }
   /** 3.0: the reader asked to compare with an older version (or to change / summarise the comparison). */
   | { readonly type: "redlineMenu" }
   | { readonly type: "redlineOff" }
@@ -260,6 +280,36 @@ export function isAtlasToHost(v: unknown): v is AtlasToHost {
   );
 }
 
+/**
+ * 3.3.0 interactive Plans Dashboard → host: open a plan (preview or browser), change sort, or trigger an action.
+ * The host opens only paths present in the dashboard's data.
+ */
+export type PlansToHost =
+  | { readonly type: "plansOpen"; readonly kind: "doc" | "browser"; readonly file: string }
+  | {
+      readonly type: "plansAction";
+      readonly action: "refresh" | "exportMd" | "exportCsv" | "askAgent" | "newPlan";
+    }
+  | { readonly type: "plansSort"; readonly sort: PlanSort };
+
+const PLAN_SORTS = new Set<string>(["attention", "changed", "progress", "date"]);
+const PLAN_ACTIONS = new Set<string>(["refresh", "exportMd", "exportCsv", "askAgent", "newPlan"]);
+
+export function isPlansToHost(v: unknown): v is PlansToHost {
+  if (!isRecord(v)) return false;
+  if (v.type === "plansOpen") {
+    return (
+      (v.kind === "doc" || v.kind === "browser") &&
+      typeof v.file === "string" &&
+      v.file.length > 0 &&
+      v.file.length <= MAX_LINK_LENGTH
+    );
+  }
+  if (v.type === "plansAction") return typeof v.action === "string" && PLAN_ACTIONS.has(v.action);
+  if (v.type === "plansSort") return typeof v.sort === "string" && PLAN_SORTS.has(v.sort);
+  return false;
+}
+
 /** Longest link a panel may ask the host to open (a sanity bound, not a feature limit). */
 export const MAX_LINK_LENGTH = 2048;
 /** Longest heading id either side accepts in a message (a sanity bound: ids come from heading text). */
@@ -296,6 +346,8 @@ export function isWebviewToHost(v: unknown): v is WebviewToHost {
     case "redlineSideBySide":
     case "compareFormat":
     case "openAtlas":
+    case "openPlans":
+    case "openQuestions":
     case "showSource":
       return true;
     case "sectionMenu":
@@ -331,6 +383,23 @@ export function isWebviewToHost(v: unknown): v is WebviewToHost {
       return isVersion(v.docVersion) && isLine(v.line) && isLine(v.column) && (v.column as number) <= 1000;
     case "setClean":
       return typeof v.on === "boolean";
+    case "setLook": {
+      const hasTheme = v.theme !== undefined;
+      const hasScale = v.fontScale !== undefined;
+      const hasWidth = v.lineWidth !== undefined;
+      if (!hasTheme && !hasScale && !hasWidth) return false;
+      if (hasTheme && (typeof v.theme !== "string" || !THEMES.includes(v.theme))) return false;
+      if (
+        hasScale &&
+        (typeof v.fontScale !== "number" ||
+          !Number.isFinite(v.fontScale) ||
+          v.fontScale < 0.7 ||
+          v.fontScale > 2)
+      )
+        return false;
+      if (hasWidth && (typeof v.lineWidth !== "string" || !WIDTHS.includes(v.lineWidth))) return false;
+      return true;
+    }
     case "openLink":
       return typeof v.href === "string" && v.href.length > 0 && v.href.length <= MAX_LINK_LENGTH;
     case "place":
@@ -404,7 +473,16 @@ const isStanding = (v: unknown): boolean =>
   Array.isArray(v.disagree) &&
   v.disagree.every((d) => typeof d === "string");
 
-const THEMES: readonly string[] = ["vscode", "paper", "github", "night", "focus"];
+const THEMES: readonly string[] = [
+  "vscode",
+  "paper",
+  "github",
+  "github-dark",
+  "night",
+  "warm-dark",
+  "solarized-light",
+  "focus",
+];
 const WIDTHS: readonly string[] = ["narrow", "normal", "wide", "full"];
 const MARKS: readonly string[] = ["approve", "question", "change"];
 const TRUST: readonly string[] = ["mismatch", "wrong", "conflict", "stale", "superseded", "verified"];

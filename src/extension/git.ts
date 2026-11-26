@@ -63,6 +63,41 @@ export async function lastAuthor(root: string, rel: string): Promise<string | un
   return out?.trim() || undefined;
 }
 
+const lastAuthorsCache = new Map<string, { at: number; authors: Map<string, string> }>();
+
+/**
+ * 3.3.0 interactive Plans Dashboard: last git author for every Markdown file in one single `git log` call
+ * (avoids spawning N git processes on Windows), cached for 60 s per workspace root.
+ */
+export async function lastAuthors(root: string): Promise<Map<string, string>> {
+  const hit = lastAuthorsCache.get(root);
+  if (hit && Date.now() - hit.at < 60_000) return hit.authors;
+  const out = await git(root, [
+    "log",
+    "-n400",
+    "--format=%x00%an",
+    "--name-only",
+    "--",
+    "*.md",
+    "*.markdown",
+    "*.mdc",
+  ]);
+  const authors = new Map<string, string>();
+  if (out) {
+    let current = "";
+    for (const raw of out.split(/\r?\n/)) {
+      if (raw.startsWith("\0")) {
+        current = raw.slice(1).trim();
+      } else if (raw && current) {
+        const rel = raw.replace(/\\/g, "/");
+        if (!authors.has(rel)) authors.set(rel, current);
+      }
+    }
+  }
+  lastAuthorsCache.set(root, { at: Date.now(), authors });
+  return authors;
+}
+
 /** 3.0 redline: a git version of a file ("HEAD", a commit, a tag); undefined when it did not exist there. */
 export async function fileAt(file: vscode.Uri, rev: string): Promise<string | undefined> {
   if (file.scheme !== "file" || !/^[\w./~^-]+$/.test(rev) || rev.startsWith("-")) return undefined;

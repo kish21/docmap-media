@@ -30,9 +30,16 @@
   --input-foreground: var(--vscode-input-foreground, oklch(0.22 0 0));
   --input-border: var(--vscode-input-border, oklch(0.8 0 0));
   --code: var(--vscode-textCodeBlock-background, oklch(0.95 0 0));
+  --code-foreground: var(--vscode-textPreformat-foreground, var(--foreground));
   /* callouts: warning / caution (the word in the title says it too — never colour alone) */
   --warning: var(--vscode-editorWarning-foreground, oklch(0.52 0.12 70));
   --danger: var(--vscode-editorError-foreground, oklch(0.52 0.19 27));
+  /* syntax tokens: follow VS Code in native mode; overridden per reading theme so dark/light never clashes */
+  --tk-comment: var(--vscode-editorCodeLens-foreground, var(--muted-foreground));
+  --tk-string: var(--vscode-debugTokenExpression-string, var(--warning));
+  --tk-number: var(--vscode-debugTokenExpression-number, var(--primary));
+  --tk-keyword: var(--vscode-debugTokenExpression-name, var(--primary));
+  --tk-function: var(--vscode-symbolIcon-functionForeground, var(--foreground));
 
   /* type: the user's own VS Code fonts (DESIGN.md §3 — deliberate, owner-chosen "native") */
   --font-sans: var(--vscode-font-family, system-ui, -apple-system, "Segoe UI", sans-serif);
@@ -147,8 +154,8 @@ body[data-reading-theme="paper"]:not(.vscode-high-contrast):not(.vscode-high-con
   --sidebar-foreground: oklch(0.3 0.02 60);
   --muted-foreground: oklch(0.47 0.02 60);
   --border: oklch(0.87 0.02 85);
-  --primary: oklch(0.47 0.12 40);
-  --ring: oklch(0.47 0.12 40);
+  --primary: oklch(0.44 0.14 40);
+  --ring: oklch(0.44 0.14 40);
   --active: oklch(0.91 0.035 85);
   --active-foreground: oklch(0.22 0.02 60);
   --hover: oklch(0.93 0.02 85);
@@ -156,6 +163,20 @@ body[data-reading-theme="paper"]:not(.vscode-high-contrast):not(.vscode-high-con
   --input-foreground: oklch(0.27 0.02 60);
   --input-border: oklch(0.8 0.02 85);
   --code: oklch(0.93 0.017 85);
+  --code-foreground: oklch(0.27 0.025 55);
+  --warning: oklch(0.47 0.13 65);
+  --danger: oklch(0.48 0.18 27);
+  --changed: oklch(0.46 0.14 250);
+  --added: oklch(0.45 0.14 150);
+  --removed: oklch(0.48 0.18 27);
+  --added-fill: color-mix(in oklch, oklch(0.6 0.15 150) 18%, transparent);
+  --removed-fill: color-mix(in oklch, oklch(0.58 0.18 25) 18%, transparent);
+  --highlight: color-mix(in oklch, oklch(0.88 0.16 95) 65%, transparent);
+  --tk-comment: oklch(0.48 0.02 60);
+  --tk-string: oklch(0.44 0.13 145);
+  --tk-number: oklch(0.44 0.14 255);
+  --tk-keyword: oklch(0.44 0.14 40);
+  --tk-function: oklch(0.4 0.12 300);
   --font-reading: Charter, "Iowan Old Style", Georgia, "Times New Roman", serif;
 }
 body[data-reading-theme="github"]:not(.vscode-high-contrast):not(.vscode-high-contrast-light) {
@@ -166,15 +187,29 @@ body[data-reading-theme="github"]:not(.vscode-high-contrast):not(.vscode-high-co
   --sidebar-foreground: oklch(0.27 0.012 260);
   --muted-foreground: oklch(0.49 0.015 260);
   --border: oklch(0.9 0.006 260);
-  --primary: oklch(0.52 0.17 255);
-  --ring: oklch(0.52 0.17 255);
+  --primary: oklch(0.48 0.18 255);
+  --ring: oklch(0.48 0.18 255);
   --active: oklch(0.95 0.02 255);
   --active-foreground: oklch(0.22 0.012 260);
   --hover: oklch(0.96 0.005 260);
   --input: oklch(1 0 0);
   --input-foreground: oklch(0.25 0.012 260);
   --input-border: oklch(0.85 0.006 260);
-  --code: oklch(0.965 0.004 260);
+  --code: oklch(0.955 0.005 260);
+  --code-foreground: oklch(0.25 0.015 260);
+  --warning: oklch(0.48 0.14 68);
+  --danger: oklch(0.49 0.19 27);
+  --changed: oklch(0.48 0.17 255);
+  --added: oklch(0.46 0.15 150);
+  --removed: oklch(0.49 0.19 27);
+  --added-fill: color-mix(in oklch, oklch(0.6 0.15 150) 16%, transparent);
+  --removed-fill: color-mix(in oklch, oklch(0.58 0.18 25) 16%, transparent);
+  --highlight: color-mix(in oklch, oklch(0.9 0.16 95) 65%, transparent);
+  --tk-comment: oklch(0.49 0.015 260);
+  --tk-string: oklch(0.44 0.14 150);
+  --tk-number: oklch(0.46 0.16 255);
+  --tk-keyword: oklch(0.47 0.19 25);
+  --tk-function: oklch(0.44 0.16 300);
   --font-reading: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
 }
 body[data-reading-theme="night"]:not(.vscode-high-contrast):not(.vscode-high-contrast-light) {
@@ -194,8 +229,140 @@ body[data-reading-theme="night"]:not(.vscode-high-contrast):not(.vscode-high-con
   --input-foreground: oklch(0.87 0.01 265);
   --input-border: oklch(0.38 0.015 265);
   --code: oklch(0.26 0.015 265);
+  --code-foreground: oklch(0.89 0.012 265);
   --warning: oklch(0.8 0.12 80);
   --danger: oklch(0.75 0.14 25);
+  --changed: oklch(0.76 0.11 230);
+  --added: oklch(0.76 0.14 150);
+  --removed: oklch(0.75 0.14 25);
+  --added-fill: color-mix(in oklch, oklch(0.7 0.15 150) 22%, transparent);
+  --removed-fill: color-mix(in oklch, oklch(0.65 0.18 25) 22%, transparent);
+  --highlight: color-mix(in oklch, oklch(0.78 0.14 95) 32%, transparent);
+  --tk-comment: oklch(0.68 0.015 265);
+  --tk-string: oklch(0.8 0.12 145);
+  --tk-number: oklch(0.78 0.12 230);
+  --tk-keyword: oklch(0.78 0.12 310);
+  --tk-function: oklch(0.82 0.11 215);
+}
+/* 3.3.0 reading themes — all WCAG-AA checked, high-contrast VS Code themes always win (ADR-0003) */
+body[data-reading-theme="github-dark"]:not(.vscode-high-contrast):not(.vscode-high-contrast-light) {
+  color-scheme: dark;
+  --background: oklch(0.18 0.012 255);
+  --foreground: oklch(0.9 0.008 255);
+  --sidebar: oklch(0.155 0.012 255);
+  --sidebar-foreground: oklch(0.87 0.008 255);
+  --muted-foreground: oklch(0.71 0.012 255);
+  --border: oklch(0.31 0.014 255);
+  --primary: oklch(0.73 0.14 250);
+  --ring: oklch(0.73 0.14 250);
+  --active: oklch(0.28 0.04 250);
+  --active-foreground: oklch(0.95 0.008 255);
+  --hover: oklch(0.24 0.016 255);
+  --input: oklch(0.22 0.012 255);
+  --input-foreground: oklch(0.9 0.008 255);
+  --input-border: oklch(0.37 0.014 255);
+  --code: oklch(0.23 0.014 255);
+  --code-foreground: oklch(0.9 0.01 255);
+  --warning: oklch(0.81 0.13 80);
+  --danger: oklch(0.74 0.16 25);
+  --changed: oklch(0.73 0.14 250);
+  --added: oklch(0.76 0.15 150);
+  --removed: oklch(0.74 0.16 25);
+  --added-fill: color-mix(in oklch, oklch(0.7 0.15 150) 22%, transparent);
+  --removed-fill: color-mix(in oklch, oklch(0.65 0.18 25) 22%, transparent);
+  --highlight: color-mix(in oklch, oklch(0.78 0.14 95) 32%, transparent);
+  --tk-comment: oklch(0.68 0.012 255);
+  --tk-string: oklch(0.8 0.12 225);
+  --tk-number: oklch(0.78 0.13 245);
+  --tk-keyword: oklch(0.75 0.15 25);
+  --tk-function: oklch(0.78 0.14 300);
+  --font-reading: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+}
+body[data-reading-theme="warm-dark"]:not(.vscode-high-contrast):not(.vscode-high-contrast-light) {
+  color-scheme: dark;
+  --background: oklch(0.2 0.016 55);
+  --foreground: oklch(0.89 0.018 75);
+  --sidebar: oklch(0.175 0.016 55);
+  --sidebar-foreground: oklch(0.86 0.018 75);
+  --muted-foreground: oklch(0.72 0.018 70);
+  --border: oklch(0.33 0.018 55);
+  --primary: oklch(0.78 0.11 65);
+  --ring: oklch(0.78 0.11 65);
+  --active: oklch(0.3 0.035 60);
+  --active-foreground: oklch(0.94 0.015 75);
+  --hover: oklch(0.25 0.02 55);
+  --input: oklch(0.24 0.016 55);
+  --input-foreground: oklch(0.89 0.018 75);
+  --input-border: oklch(0.39 0.018 55);
+  --code: oklch(0.25 0.018 55);
+  --code-foreground: oklch(0.9 0.02 75);
+  --warning: oklch(0.82 0.12 80);
+  --danger: oklch(0.75 0.15 25);
+  --changed: oklch(0.78 0.11 65);
+  --added: oklch(0.78 0.12 145);
+  --removed: oklch(0.75 0.15 25);
+  --added-fill: color-mix(in oklch, oklch(0.7 0.14 145) 22%, transparent);
+  --removed-fill: color-mix(in oklch, oklch(0.65 0.17 25) 22%, transparent);
+  --highlight: color-mix(in oklch, oklch(0.78 0.14 85) 32%, transparent);
+  --tk-comment: oklch(0.7 0.018 70);
+  --tk-string: oklch(0.8 0.11 140);
+  --tk-number: oklch(0.8 0.11 65);
+  --tk-keyword: oklch(0.78 0.13 35);
+  --tk-function: oklch(0.82 0.1 85);
+  --font-reading: Charter, "Iowan Old Style", Georgia, "Times New Roman", serif;
+}
+body[data-reading-theme="solarized-light"]:not(.vscode-high-contrast):not(.vscode-high-contrast-light) {
+  color-scheme: light;
+  --background: oklch(0.97 0.024 95);
+  --foreground: oklch(0.32 0.025 205);
+  --sidebar: oklch(0.94 0.026 95);
+  --sidebar-foreground: oklch(0.34 0.025 205);
+  --muted-foreground: oklch(0.47 0.022 205);
+  --border: oklch(0.86 0.024 95);
+  --primary: oklch(0.47 0.14 245);
+  --ring: oklch(0.47 0.14 245);
+  --active: oklch(0.9 0.03 95);
+  --active-foreground: oklch(0.26 0.025 205);
+  --hover: oklch(0.92 0.026 95);
+  --input: oklch(0.985 0.016 95);
+  --input-foreground: oklch(0.32 0.025 205);
+  --input-border: oklch(0.8 0.024 95);
+  --code: oklch(0.935 0.026 95);
+  --code-foreground: oklch(0.3 0.028 205);
+  --warning: oklch(0.48 0.13 70);
+  --danger: oklch(0.48 0.17 27);
+  --changed: oklch(0.47 0.14 245);
+  --added: oklch(0.45 0.13 145);
+  --removed: oklch(0.48 0.17 27);
+  --added-fill: color-mix(in oklch, oklch(0.6 0.14 145) 18%, transparent);
+  --removed-fill: color-mix(in oklch, oklch(0.58 0.17 25) 18%, transparent);
+  --highlight: color-mix(in oklch, oklch(0.88 0.16 95) 60%, transparent);
+  --tk-comment: oklch(0.49 0.02 205);
+  --tk-string: oklch(0.45 0.12 185);
+  --tk-number: oklch(0.46 0.14 245);
+  --tk-keyword: oklch(0.45 0.13 130);
+  --tk-function: oklch(0.46 0.14 245);
+}
+/* 3.3.0: theme swatch preview tokens for the Look popover (keeps raw colours strictly inside tokens.css) */
+:root {
+  --swatch-paper-bg: oklch(0.975 0.014 85);
+  --swatch-paper-fg: oklch(0.27 0.02 60);
+  --swatch-paper-accent: oklch(0.47 0.12 40);
+  --swatch-github-bg: oklch(1 0 0);
+  --swatch-github-fg: oklch(0.25 0.012 260);
+  --swatch-github-accent: oklch(0.52 0.17 255);
+  --swatch-github-dark-bg: oklch(0.18 0.012 255);
+  --swatch-github-dark-fg: oklch(0.9 0.008 255);
+  --swatch-github-dark-accent: oklch(0.73 0.14 250);
+  --swatch-night-bg: oklch(0.21 0.015 265);
+  --swatch-night-fg: oklch(0.87 0.01 265);
+  --swatch-night-accent: oklch(0.76 0.11 230);
+  --swatch-warm-dark-bg: oklch(0.2 0.016 55);
+  --swatch-warm-dark-fg: oklch(0.89 0.018 75);
+  --swatch-warm-dark-accent: oklch(0.78 0.11 65);
+  --swatch-solarized-light-bg: oklch(0.97 0.024 95);
+  --swatch-solarized-light-fg: oklch(0.32 0.025 205);
+  --swatch-solarized-light-accent: oklch(0.49 0.13 245);
 }
 /* highlights and "changed": a soft fill that reads in light and dark themes, plus a label (never colour alone) */
 :root {

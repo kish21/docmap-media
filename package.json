@@ -2,7 +2,7 @@
   "name": "markdown-as-web-page",
   "displayName": "All-in-One Markdown Viewer",
   "description": "Your AI wrote 200 Markdown files — read the 10 that matter. Same-tab preview with a clickable table of contents, a Docs Inbox (changed, duplicates, out of date), review AI plans and send it to your own agent, themes, highlights, export. Free; collects nothing.",
-  "version": "3.2.2",
+  "version": "3.3.0",
   "publisher": "kish21",
   "license": "MIT",
   "private": false,
@@ -544,51 +544,16 @@
         {
           "command": "docmap.inbox.refresh",
           "when": "view == docmap.inbox",
-          "group": "1_docs@9"
-        },
-        {
-          "command": "docmap.home",
-          "when": "view == docmap.inbox",
-          "group": "1_docs@1"
-        },
-        {
-          "command": "docmap.plansDashboard",
-          "when": "view == docmap.inbox",
-          "group": "1_docs@3"
-        },
-        {
-          "command": "docmap.newDocFromTemplate",
-          "when": "view == docmap.inbox",
-          "group": "navigation@9"
-        },
-        {
-          "command": "docmap.decisionLog",
-          "when": "view == docmap.inbox",
-          "group": "1_docs@4"
-        },
-        {
-          "command": "docmap.searchDocs",
-          "when": "view == docmap.inbox",
           "group": "navigation@1"
         },
         {
-          "command": "docmap.docAtlas",
-          "when": "view == docmap.inbox",
-          "group": "1_docs@2"
-        },
-        {
           "command": "docmap.whatCanItDo",
-          "when": "view == docmap.inbox",
+          "when": "view == docmap.inbox || view == docmap.quickLaunch",
           "group": "0_find@0"
         },
         {
-          "command": "docmap.whereToStart",
-          "when": "view == docmap.inbox",
-          "group": "1_docs@0"
-        },
-        {
           "command": "docmap.help",
-          "when": "view == docmap.inbox",
+          "when": "view == docmap.inbox || view == docmap.quickLaunch",
           "group": "navigation@9"
         }
       ],
@@ -682,18 +647,24 @@
               "vscode",
               "paper",
               "github",
+              "github-dark",
               "night",
+              "warm-dark",
+              "solarized-light",
               "focus"
             ],
             "enumDescriptions": [
               "Your VS Code colours (default)",
               "Warm, book-like, serif",
-              "Familiar GitHub look",
+              "Familiar GitHub light look",
+              "Familiar GitHub dark look",
               "Dark and soft",
+              "Warm espresso dark, serif",
+              "Classic warm cream Solarized Light",
               "One calm column, nothing else"
             ],
             "default": "vscode",
-            "markdownDescription": "Reading theme for the preview. High-contrast VS Code themes always win, so it stays readable. Quick switch: **Choose Reading Look** in the preview's `…` menu."
+            "markdownDescription": "Reading theme for the preview. High-contrast VS Code themes always win, so it stays readable. Quick switch: **Look** button on the preview top bar."
           },
           "docmap.fontScale": {
             "type": "number",
@@ -869,18 +840,32 @@
         }
       }
     },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "docmap",
+          "title": "docmap",
+          "icon": "media/activity-bar.svg"
+        }
+      ]
+    },
     "views": {
-      "explorer": [
+      "docmap": [
+        {
+          "id": "docmap.quickLaunch",
+          "name": "Quick Launch",
+          "contextualTitle": "docmap"
+        },
         {
           "id": "docmap.inbox",
           "name": "Docs Inbox",
-          "contextualTitle": "All-in-One Markdown Viewer",
+          "contextualTitle": "docmap",
           "icon": "$(docmap-map-here)"
         },
         {
           "id": "docmap.folderMap",
           "name": "Markdown Files",
-          "contextualTitle": "All-in-One Markdown Viewer",
+          "contextualTitle": "docmap",
           "icon": "$(docmap-map-here)"
         }
       ]
@@ -1026,6 +1011,7 @@
   },
   "scripts": {
     "build": "node scripts/build.mjs",
+    "build:chrome": "node scripts/build-chrome.mjs",
     "watch": "node scripts/build.mjs --watch",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.core.json",
     "lint": "biome check .",
@@ -1040,6 +1026,7 @@
     "publish:marketplace": "node scripts/env-guard.mjs VSCE_PAT && npm run build && vsce publish --no-dependencies",
     "prepare": "node -e \"const fs=require('fs'),cp=require('child_process');if(fs.existsSync('lefthook.yml'))cp.execSync('lefthook install',{stdio:'inherit'})\"",
     "test:browser": "node tests/browser/panel.browser.mjs",
+    "test:chrome": "node tests/browser/chrome.browser.mjs",
     "icons": "node scripts/build-icons.mjs",
     "publish:openvsx": "node scripts/env-guard.mjs OVSX_PAT && npm run build && npx --yes ovsx@1.2.0 publish --no-dependencies"
   },

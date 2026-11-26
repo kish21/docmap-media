@@ -85,6 +85,21 @@ describe("resolveConfig", () => {
   it("#56: default largeFileBytes is lowered to 2 MB (above the 1 MB guardrail, below 5 MB)", () => {
     expect(DEFAULT_CONFIG.largeFileBytes).toBe(2 * 1024 * 1024);
   });
+
+  it("3.3.0: accepts all 8 reading themes including github-dark, warm-dark and solarized-light", () => {
+    for (const theme of [
+      "vscode",
+      "paper",
+      "github",
+      "github-dark",
+      "night",
+      "warm-dark",
+      "solarized-light",
+      "focus",
+    ] as const) {
+      expect(resolveConfig({ theme }).theme).toBe(theme);
+    }
+  });
 });
 
 describe("debounceForBytes (#56)", () => {

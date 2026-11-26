@@ -14,5 +14,6 @@ describe("the .vsix", () => {
       expect(files, `${needed} is missing from the .vsix (see .vscodeignore)`).toContain(needed);
     }
     expect(files.filter((f) => f.startsWith("media/walkthrough/")).length).toBeGreaterThan(0);
+    expect(files.filter((f) => f.startsWith("src/chrome/") || f.startsWith("dist-chrome/"))).toEqual([]);
   }, 120_000);
 });

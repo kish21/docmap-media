@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { atlasHtml, panelHtml } from "./panel-html";
+import { atlasHtml, panelHtml, plansHtml } from "./panel-html";
 
 describe("Doc Atlas graph page", () => {
   const page = atlasHtml({
@@ -23,7 +23,32 @@ describe("Doc Atlas graph page", () => {
   it("carries the data in an inert JSON element a doc title cannot end", () => {
     expect(page).toContain('<script type="application/json" id="atlas-data">');
     expect(page).not.toContain("</script><script>alert(1)");
-    expect(page).toContain("\\u003c/script>");
+    expect(page).toContain("\\u003c/script\\u003e");
+  });
+});
+
+describe("Plans Dashboard interactive page", () => {
+  const page = plansHtml({
+    cspSource: "vscode-resource:",
+    nonce: "p1ans",
+    tokensCss: "tokens.css",
+    stylesCss: "plans.css",
+    script: "plans.js",
+    title: "Plans Dashboard",
+    data: { rows: [{ title: "</script><img src=x onerror=alert(1)> & \u2028\u2029" }] },
+  });
+  it("loads tokens.css before plans.css under strict nonce CSP", () => {
+    expect(page.indexOf('href="tokens.css"')).toBeLessThan(page.indexOf('href="plans.css"'));
+    expect(page).toContain("default-src 'none'");
+    expect(page).toContain("script-src 'nonce-p1ans'");
+    expect(page).not.toMatch(/unsafe-inline|unsafe-eval|https?:/);
+  });
+  it("escapes <, >, &, and line separators in the embedded JSON payload", () => {
+    expect(page).toContain('<script type="application/json" id="plans-data">');
+    expect(page).not.toContain("</script><img");
+    expect(page).toContain("\\u003c/script\\u003e");
+    expect(page).toContain("\\u0026");
+    expect(page).toContain("\\u2028\\u2029");
   });
 });
 

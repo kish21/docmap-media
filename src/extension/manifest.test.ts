@@ -33,25 +33,24 @@ describe("extension manifest", () => {
     expect(when("docmap.showSource")).toBe("activeCustomEditorId == 'docmap.page'");
   });
 
-  it("#48: the Docs Inbox shows three buttons (New Doc, Search, Help); the rest sit in its ⋯ menu", () => {
+  it("3.3.0: the Docs Inbox title bar is decluttered (Refresh + Help; workspace views live in Quick Launch)", () => {
     const titles = Object.fromEntries(
       manifest.contributes.commands.map((c: { command: string; title: string }) => [c.command, c.title]),
     );
-    const inbox = manifest.contributes.menus["view/title"].filter(
-      (m: { when: string }) => m.when === "view == docmap.inbox",
+    const inbox = manifest.contributes.menus["view/title"].filter((m: { when: string }) =>
+      m.when.includes("view == docmap.inbox"),
     );
     const shown = inbox
       .filter((m: { group: string }) => m.group.startsWith("navigation"))
       .map((m: { command: string }) => titles[m.command]);
-    expect(shown).toHaveLength(3);
-    expect(shown.join(" | ")).toMatch(/New Doc/);
-    expect(shown.join(" | ")).toMatch(/Search All Docs/);
+    expect(shown).toHaveLength(2);
+    expect(shown.join(" | ")).toMatch(/Refresh Docs Inbox/);
     expect(shown.join(" | ")).toMatch(/Help/);
     const inMenu = inbox
       .filter((m: { group: string }) => !m.group.startsWith("navigation"))
       .map((m: { command: string }) => titles[m.command])
       .join(" | ");
-    for (const t of ["Plans Dashboard", "Decision Log", "Refresh Docs Inbox"]) expect(inMenu).toContain(t);
+    expect(inMenu).toContain("What Can docmap Do?");
   });
 
   it("#48: settings are grouped, rarely changed ones under Advanced; the typing delay is no longer a setting", () => {
@@ -94,8 +93,13 @@ describe("extension manifest", () => {
     expect(`${manifest.publisher}.${manifest.name}`).toBe("kish21.markdown-as-web-page");
   });
 
-  it("0.0.8: the folder map lives in the Explorer, with a refresh button; its row command stays out of the palette", () => {
-    expect(manifest.contributes.views.explorer.map((v: { id: string }) => v.id)).toEqual([
+  it("3.3.0: docmap has its own Activity Bar container (Quick Launch, Docs Inbox, Markdown Files); not duplicated in Explorer", () => {
+    expect(manifest.contributes.viewsContainers.activitybar).toEqual([
+      { id: "docmap", title: "docmap", icon: "media/activity-bar.svg" },
+    ]);
+    expect(manifest.contributes.views.explorer).toBeUndefined();
+    expect(manifest.contributes.views.docmap.map((v: { id: string }) => v.id)).toEqual([
+      "docmap.quickLaunch",
       "docmap.inbox",
       "docmap.folderMap",
     ]);

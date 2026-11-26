@@ -79,7 +79,16 @@ export const DEFAULT_CONFIG: DocmapConfig = {
   includeFolders: [".github"],
 };
 
-const THEMES: readonly ReadingTheme[] = ["vscode", "paper", "github", "night", "focus"];
+const THEMES: readonly ReadingTheme[] = [
+  "vscode",
+  "paper",
+  "github",
+  "github-dark",
+  "night",
+  "warm-dark",
+  "solarized-light",
+  "focus",
+];
 const WIDTHS: readonly LineWidth[] = ["narrow", "normal", "wide", "full"];
 
 /** Merge raw user settings over the defaults, rejecting values that make no sense. */
@@ -224,6 +233,12 @@ export const INTERNAL_LIMITS = {
   inboxMaxFileBytes: 256 * 1024,
   /** #53 Docs Inbox: total byte budget read across uncached files per scan; files beyond are summarized (bytes). */
   inboxTotalScanBytes: 10 * 1024 * 1024,
+  /** 3.3.0 Docs Inbox: max entries persisted in the workspaceState reload cache. */
+  inboxCacheMaxEntries: 500,
+  /** 3.3.0 Docs Inbox: max serialized UTF-8 bytes persisted in the workspaceState reload cache (512 KB). */
+  inboxCacheMaxBytes: 512 * 1024,
+  /** 3.3.0 MCP server: max incoming JSON-RPC line length accepted on stdio (bytes). */
+  mcpMaxLineBytes: 1024 * 1024,
   /** Files whose notes (marks, highlights, read state) are kept; the least recently touched are dropped first. */
   notesFiles: 3000,
   /** #54 Trust markers: files the repo index lists (a bigger repo is indexed up to here; paths beyond are "unknown"). */

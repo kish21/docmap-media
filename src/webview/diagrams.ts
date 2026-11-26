@@ -181,13 +181,23 @@ function load(): Promise<Mermaid | undefined> {
   return library;
 }
 
-/** VS Code marks its dark and high-contrast themes on the body; outside VS Code, the system setting decides. */
+/** Reading themes whose surface is dark or light, overriding the host theme unless VS Code high contrast is active. */
+const DARK_READING_THEMES = new Set(["github-dark", "night", "warm-dark"]);
+const LIGHT_READING_THEMES = new Set(["paper", "github", "solarized-light"]);
+
+/** VS Code marks its dark and high-contrast themes on the body; reading themes win except in high contrast (ADR-0003). */
 function currentTheme(): string {
+  const body = document.body.classList;
+  // ADR-0003: VS Code high-contrast themes always win over reading themes
+  if (body.contains("vscode-high-contrast-light")) return "default";
+  if (body.contains("vscode-high-contrast")) return "dark";
+  const reading = document.body.getAttribute?.("data-reading-theme") ?? "";
+  if (DARK_READING_THEMES.has(reading)) return "dark";
+  if (LIGHT_READING_THEMES.has(reading)) return "default";
   // the snapshot's light / dark switch (0.0.19) marks the root element
   if (document.documentElement.classList.contains("dark")) return "dark";
   if (document.documentElement.classList.contains("light")) return "default";
-  const body = document.body.classList;
-  if (body.contains("vscode-dark") || body.contains("vscode-high-contrast")) return "dark";
-  if (body.contains("vscode-light") || body.contains("vscode-high-contrast-light")) return "default";
+  if (body.contains("vscode-dark")) return "dark";
+  if (body.contains("vscode-light")) return "default";
   return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "default";
 }

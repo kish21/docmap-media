@@ -51,21 +51,54 @@ const main = el("main");
 root.append(side, main);
 side.append(el("h1", undefined, "Doc Atlas"));
 const features = docs.filter((d) => d.f);
+let showAllDocs = features.length === 0;
 side.append(el("p", "sub", `${features.length} features · ${docs.length} docs`));
 const search = el("input");
 search.placeholder = "Find a feature or doc…";
 search.setAttribute("aria-label", "Find a feature or doc");
+side.append(search);
+
+const modeBar = el("div", "mode-bar");
+const featBtn = el("button", "mode-pill on", `Features (${features.length})`);
+featBtn.type = "button";
+const allBtn = el("button", "mode-pill", `All docs (${docs.length})`);
+allBtn.type = "button";
+if (features.length > 0 && features.length < docs.length) {
+  const setMode = (all: boolean) => {
+    showAllDocs = all;
+    featBtn.classList.toggle("on", !all);
+    allBtn.classList.toggle("on", all);
+    renderList(search.value);
+  };
+  featBtn.onclick = () => setMode(false);
+  allBtn.onclick = () => setMode(true);
+  modeBar.append(featBtn, allBtn);
+  side.append(modeBar);
+}
+
 const list = el("div", "list");
-side.append(search, list);
+side.append(list);
 
 const top = el("div", "top");
+const topBar = el("div", "top-bar");
+const navLeft = el("div", "nav-left");
+const backBtn = el("button", "action back-btn", "← Back");
+backBtn.type = "button";
+backBtn.disabled = true;
+backBtn.onclick = () => {
+  if (trail.length < 2) return;
+  trail.pop();
+  const prev = trail.pop();
+  if (prev) focus(prev);
+};
 // opened from a doc: its map first, the feature list folded behind one button (owner report 2026-11-24)
 const listToggle = el("button", "action list-toggle");
+listToggle.type = "button";
 listToggle.setAttribute("aria-controls", "atlas-list");
 side.id = "atlas-list";
 function showList(on: boolean): void {
   root.classList.toggle("solo", !on);
-  listToggle.textContent = on ? "Hide the feature list" : "☰ All features";
+  listToggle.textContent = on ? "Hide list" : "☰ All docs";
   listToggle.setAttribute("aria-expanded", String(on));
   const at = trail.at(-1);
   if (at) {
@@ -77,21 +110,35 @@ function showList(on: boolean): void {
 listToggle.onclick = () => showList(root.classList.contains("solo"));
 const crumbs = el("nav", "crumbs");
 crumbs.setAttribute("aria-label", "Where you have been");
+navLeft.append(backBtn, crumbs);
+topBar.append(navLeft, listToggle);
 const title = el("div", "title");
 const what = el("div", "what");
 const actions = el("div", "actions");
-top.append(listToggle, crumbs, title, what, actions);
+top.append(topBar, title, what, actions);
 const svg = svgEl("svg", {
   role: "img",
   "aria-label": "The doc, the docs around it and its code",
 }) as SVGSVGElement;
-main.append(top, svg);
-main.append(el("div", "hint", "Click any box to move there."));
+const footer = el("div", "footer");
+footer.append(el("span", "hint", "Click any box to move there."));
+const legend = el("div", "legend");
+for (const [cls, label] of [
+  ["me", "Current"],
+  ["feature", "Feature"],
+  ["doc", "Doc"],
+  ["code", "Code"],
+] as const) {
+  const item = el("span", "legend-item");
+  item.append(el("span", `swatch swatch-${cls}`), document.createTextNode(label));
+  legend.append(item);
+}
+footer.append(legend);
+main.append(top, svg, footer);
 
 function renderList(filter: string): void {
   const f = filter.trim().toLowerCase();
-  // no feature docs in this project: list every doc instead
-  const pool = features.length > 0 ? features : docs;
+  const pool = showAllDocs || features.length === 0 ? docs : features;
   const hits = f ? docs.filter((d) => d.t.toLowerCase().includes(f) || d.p.toLowerCase().includes(f)) : pool;
   const groups = new Map<string, AtlasNode[]>();
   for (const d of hits.slice(0, 500))
@@ -150,6 +197,7 @@ function focus(path: string): void {
   const d = byPath.get(path);
   if (!d) return;
   if (trail.at(-1) !== path) trail.push(path);
+  backBtn.disabled = trail.length < 2;
   for (const b of list.querySelectorAll<HTMLButtonElement>("button.item"))
     b.classList.toggle("on", b.dataset.path === path);
 
@@ -187,16 +235,22 @@ function focus(path: string): void {
   const H = svg.clientHeight || 600;
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   const cx = W / 2;
-  const cy = H * 0.4;
+  const perRow = Math.max(1, Math.floor((W - 40) / 175));
+  const code = d.c.slice(0, perRow * 2);
+  const codeRows = code.length > 0 ? Math.ceil(code.length / perRow) : 0;
+  const bottomZone = codeRows > 0 ? codeRows * 52 + 64 : 24;
+  const graphTop = 36;
+  const graphH = Math.max(160, H - graphTop - bottomZone);
+  const cy = graphTop + graphH / 2;
   const ins = (inbound.get(path) ?? []).filter((p) => p !== path);
   const left = fitNeighbours(ins);
   const right = fitNeighbours(d.l);
   const leftX = Math.max(90, W * 0.15);
   const rightX = Math.min(W - 90, W * 0.85);
-  const leftY = columnY(left.length, cy, H * 0.75);
-  const rightY = columnY(right.length, cy, H * 0.75);
-  const code = d.c.slice(0, Math.max(1, Math.floor((W - 40) / 175)) * 2);
-  const grid = codeGrid(code.length, W, cx, H * 0.8);
+  const leftY = columnY(left.length, cy, graphH);
+  const rightY = columnY(right.length, cy, graphH);
+  const codeTop = graphTop + graphH + 34;
+  const grid = codeGrid(code.length, W, cx, codeTop);
 
   const defs = svgEl("defs", {});
   const marker = svgEl("marker", {
@@ -226,7 +280,22 @@ function focus(path: string): void {
       const y = ys[i] ?? cy;
       if ("more" in it)
         parts.push(
-          box(x, y, 160, `+${it.more} more`, "more", `${it.more} more docs: use the search to find them`),
+          box(
+            x,
+            y,
+            160,
+            `+${it.more} more`,
+            "more",
+            `${it.more} more docs — click to browse all docs in the sidebar`,
+            () => {
+              showAllDocs = true;
+              featBtn.classList.remove("on");
+              allBtn.classList.add("on");
+              renderList(search.value);
+              showList(true);
+              search.focus();
+            },
+          ),
         );
       else {
         const n = byPath.get(it.path);
@@ -259,7 +328,7 @@ function focus(path: string): void {
     parts.push(
       caption(
         cx,
-        H * 0.8 - 30,
+        codeTop - 28,
         `Code it names (${d.c.length}${d.c.length > code.length ? `, ${code.length} shown` : ""})`,
       ),
     );

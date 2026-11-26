@@ -1,6 +1,8 @@
 # Everything not listed here ships. The .vsix should hold only: dist/ (minus tests), media/ (built icons, not their sources), package.json, README, LICENSE, CHANGELOG.
 # (vsce: a "!" re-include always wins over a later ignore, so this is an ignore list, not an allow list.)
 src/**
+packages/**
+dist-chrome/**
 tests/**
 scripts/**
 docs/**

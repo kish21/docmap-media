@@ -1,0 +1,148 @@
+/* Chrome local .md viewer additions — uses only tokens from tokens.css (ADR-0003). */
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--background);
+  color: var(--foreground);
+}
+
+#app {
+  height: 100vh;
+}
+
+.dm-chrome-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-4);
+  padding: 0 0 var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.prose > .dm-chrome-bar {
+  content-visibility: visible;
+  position: relative;
+  z-index: 30;
+}
+
+.dm-chrome-badge {
+  font-size: var(--text-caption);
+  color: var(--muted-foreground);
+  letter-spacing: 0.02em;
+}
+
+.dm-chrome-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  position: relative;
+}
+
+.dm-ai-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.dm-ai-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--foreground);
+  background: var(--sidebar);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.dm-ai-btn:hover {
+  background: var(--hover);
+}
+
+.dm-ai-btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+.dm-ai-menu {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  z-index: 40;
+  min-width: 260px;
+  max-width: 320px;
+  padding: var(--space-1);
+  background: var(--sidebar);
+  color: var(--sidebar-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.dm-ai-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 100%;
+  padding: var(--space-2);
+  text-align: left;
+  font: inherit;
+  color: var(--sidebar-foreground);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.dm-ai-item:hover {
+  background: var(--hover);
+}
+
+.dm-ai-item:focus-visible {
+  background: var(--hover);
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+.dm-ai-item-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.dm-ai-item-detail {
+  font-size: var(--text-caption);
+  color: var(--muted-foreground);
+}
+
+.dm-ai-toast {
+  position: fixed;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  z-index: 60;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  background: var(--sidebar);
+  color: var(--foreground);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
+}
+
+/* High-contrast OS preference: let forced-colors / system palette win */
+@media (prefers-contrast: more) {
+  body[data-reading-theme] {
+    --background: Canvas;
+    --foreground: CanvasText;
+    --sidebar: Canvas;
+    --sidebar-foreground: CanvasText;
+    --border: CanvasText;
+    --primary: LinkText;
+    --ring: Highlight;
+  }
+}

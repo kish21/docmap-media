@@ -1,6 +1,12 @@
 import type { Highlight, PageExtras, SectionCounts, WebviewToHost } from "../core/protocol/messages";
 import { openFoldsWith } from "./clean";
 import { markCodeRefs, onCodeRef, terminalButton } from "./code-actions";
+import {
+  closeLookOnEscape,
+  closeLookOnOutsideClick,
+  createLookControl,
+  readStoredLook,
+} from "./look-popover";
 import { applyRedline, clearRedline, type RedlineCounts } from "./redline";
 import { drawStanding } from "./standing-view";
 
@@ -16,6 +22,7 @@ const ADDED = "dm-x"; // every element this module adds carries it, so a redraw 
 
 let post: Post = () => {};
 let snapshot = false;
+let onSnapshotTheme: (() => void) | undefined;
 let current: PageExtras = {};
 let pageVersion = -1;
 /** Which trust chip was clicked last and which of its paragraphs it went to (the next click goes one further). */
@@ -26,15 +33,21 @@ export function setPageVersion(version: number): void {
   pageVersion = version;
 }
 
-export function initExtras(send: Post, isSnapshot: boolean): void {
+export function initExtras(send: Post, isSnapshot: boolean, onThemeRedraw?: () => void): void {
   post = send;
   snapshot = isSnapshot;
+  onSnapshotTheme = onThemeRedraw;
   document.addEventListener("mouseup", onMouseUp);
   document.addEventListener("keydown", onSlideKey, true);
   document.addEventListener("click", onClick, true);
   document.addEventListener("mouseover", onHoverBlock);
-  // a status label is a button: Enter or Space opens its menu too; Enter on a code name opens it
+  // a status label is a button: Enter or Space opens its menu too; Enter on a code name opens it; Esc closes Look
   document.addEventListener("keydown", (e) => {
+    if (closeLookOnEscape(e)) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
     if ((e.key === "Enter" || e.key === " ") && (e.target as Element | null)?.closest?.(".dm-status-edit")) {
       if (onEditClick(e.target as Element)) e.preventDefault();
     }
@@ -50,6 +63,21 @@ export function applyExtras(extras: PageExtras | undefined): void {
     if (!("redline" in extras)) delete (current as { redline?: unknown }).redline;
     // full extras (a render) without it: this doc has nothing to show; a small update (a highlight) keeps it
     if ("look" in extras && !("standing" in extras)) delete (current as { standing?: unknown }).standing;
+  }
+  if (snapshot) {
+    const saved = readStoredLook();
+    if (saved) {
+      current = {
+        ...current,
+        look: {
+          theme: saved.theme ?? current.look?.theme ?? "vscode",
+          fontScale: saved.fontScale ?? current.look?.fontScale ?? 1,
+          lineWidth: saved.lineWidth ?? current.look?.lineWidth ?? "normal",
+          ...(current.look?.clean !== undefined ? { clean: current.look.clean } : {}),
+          ...(current.look?.numbers !== undefined ? { numbers: current.look.numbers } : {}),
+        },
+      };
+    }
   }
   const prose = document.querySelector<HTMLElement>(".prose");
   if (!prose) return;
@@ -149,16 +177,17 @@ function keyPointsStrip(prose: HTMLElement): void {
   const kp = current.keyPoints;
   const changed = current.changed?.length ?? 0;
   const hasSlides = prose.querySelector(":scope > hr") !== null;
-  if (!kp && changed === 0 && !hasSlides && !current.signoffs?.length && !current.docKind) return;
+  if (!current.look && !kp && changed === 0 && !hasSlides && !current.signoffs?.length && !current.docKind)
+    return;
   const strip = el("section", `keypoints ${ADDED}`);
-  strip.setAttribute("aria-label", "Key points");
+  strip.setAttribute("aria-label", "Document toolbar and key points");
   // owner report 2026-11-17: "In short" repeated the paragraph right below it — shown only when it adds something
   if (kp?.tldr && !repeatsTopOfPage(prose, kp.tldr)) {
     const p = el("p", "kp-tldr");
     p.append(text("strong", "In short: "), document.createTextNode(kp.tldr));
     strip.append(p);
   }
-  // owner report 2026-11-17 (layout confusing): what is true about the file on the left, what you can do on the right
+  // 3.3.0: calm 4-control top bar (Look, Clean view, Show source, More …) + quiet status chips on the left
   const chips = el("div", "kp-chips");
   const actions = el("div", "kp-actions");
   // 3.0 named formats: what kind of doc this is (only when docmap is sure); a click lists the format's parts
@@ -220,6 +249,32 @@ function keyPointsStrip(prose: HTMLElement): void {
     );
     if (!snapshot) chips.append(button("Mark as read", "kp-read", "Forget these changes"));
   }
+  // 3.3.0: compact quick-action bar — Look, Plans, Atlas, Compare, Browser icon, Questions icon, More (…)
+  const lookState = {
+    theme: current.look?.theme ?? "vscode",
+    fontScale: current.look?.fontScale ?? 1,
+    lineWidth: current.look?.lineWidth ?? "normal",
+    ...(current.look?.clean !== undefined ? { clean: current.look.clean } : {}),
+    ...(current.look?.numbers !== undefined ? { numbers: current.look.numbers } : {}),
+  };
+  actions.append(
+    createLookControl({
+      addedClass: ADDED,
+      current: lookState,
+      snapshot,
+      post,
+      onLocalChange: (next, themeChanged) => {
+        current = { ...current, look: next };
+        applyLook(next);
+        if (snapshot && themeChanged) onSnapshotTheme?.();
+      },
+    }),
+  );
+  // #48: in VS Code, slides live in the More (…) menu; the browser page has no such menu, so it keeps the button
+  if (hasSlides && snapshot)
+    actions.append(
+      button("▶ Slides", "kp-slides", "Show the sections between --- lines as slides ( ← → , Esc )"),
+    );
   if (!snapshot) {
     // a switch that says what it is, on or off — not a button whose label flips to the other mode
     const clean = current.look?.clean !== false;
@@ -235,32 +290,21 @@ function keyPointsStrip(prose: HTMLElement): void {
     t.append(el("span", "kp-switch"), document.createTextNode("Clean view"));
     t.dataset.on = String(!clean);
     actions.append(t);
+    actions.append(button("Plans", "kp-plans", "Open Plans Dashboard"));
+    if (!current.report) actions.append(button("Atlas", "kp-atlas", "Open Doc Atlas for this doc"));
+    actions.append(
+      button("Compare", "kp-compare", "Show what changed since last read, last commit, a week ago, or a tag"),
+    );
+    const browserBtn = button("🌐", "kp-browser kp-icon-btn", "Open in Browser");
+    browserBtn.setAttribute("aria-label", "Open in Browser");
+    const questionsBtn = button("?", "kp-questions kp-icon-btn", "Open Questions");
+    questionsBtn.setAttribute("aria-label", "Open Questions");
+    actions.append(
+      browserBtn,
+      questionsBtn,
+      button("⋯ More", "kp-menu", "Check code, Show source, Review & AI, Export HTML/PDF, Workspace views…"),
+    );
   }
-  if (!snapshot && !current.redline)
-    actions.append(
-      button(
-        "⇆ Compare…",
-        "kp-compare",
-        "Show what changed: since I last read it, the last commit, a week ago, a tag…",
-      ),
-    );
-  // #48 (owner pick 2026-11-21): in VS Code, slides are in the ⋯ Ask my AI agent menu; the browser page has no such
-  // menu, so it keeps the button
-  if (hasSlides && snapshot)
-    actions.append(
-      button("▶ Slides", "kp-slides", "Show the sections between --- lines as slides ( ← → , Esc )"),
-    );
-  // owner report 2026-11-24: the preview had no visible way back to the text; and a page docmap wrote has no Atlas
-  if (!snapshot && current.inTab)
-    actions.append(button("✎ Show source", "kp-source", "Show this file's text in this tab (Ctrl+Alt+V)"));
-  if (!snapshot && !current.report)
-    actions.append(
-      button("◈ Doc Atlas", "kp-atlas", "The docs around this one and the code it names, beside this doc"),
-    );
-  if (!snapshot)
-    actions.append(
-      button("⋯ Ask my AI agent", "kp-menu", "Review this file or ask your own AI agent about it"),
-    );
   if (chips.childElementCount > 0 || actions.childElementCount > 0) {
     const bar = el("div", "kp-bar");
     if (chips.childElementCount > 0) bar.append(chips);
@@ -495,7 +539,7 @@ function onHoverBlock(event: MouseEvent): void {
   const tagged = block?.matches("[data-block]") ? block : block?.querySelector<HTMLElement>("[data-block]");
   if (!block || !tagged || block.hasAttribute("data-trust") || block.classList.contains(ADDED)) return;
   ghost ??= button(
-    "·",
+    "+",
     "dm-mark dm-mark-ghost",
     "Verify this paragraph, mark it wrong, or ask your AI agent",
   );
@@ -639,6 +683,7 @@ function onSlideKey(event: KeyboardEvent): void {
 
 function onClick(event: MouseEvent): void {
   const target = event.target as Element | null;
+  closeLookOnOutsideClick(target);
   const hit = (cls: string) => target?.closest?.(`.${cls}`);
   const handled = () => {
     event.preventDefault();
@@ -690,6 +735,15 @@ function onClick(event: MouseEvent): void {
   } else if (hit("kp-atlas")) {
     handled();
     post({ type: "openAtlas" });
+  } else if (hit("kp-plans")) {
+    handled();
+    post({ type: "openPlans" });
+  } else if (hit("kp-browser")) {
+    handled();
+    post({ type: "openInBrowser" });
+  } else if (hit("kp-questions")) {
+    handled();
+    post({ type: "openQuestions" });
   } else if (hit("kp-source")) {
     handled();
     post({ type: "showSource" });

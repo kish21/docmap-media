@@ -2,7 +2,12 @@ import { INTERNAL_TIMINGS } from "../core/config/config";
 import { BROWSER_FRAGMENT } from "../core/insights/plans-dashboard";
 import { currentHeadingIndex } from "../core/outline/current";
 import type { Heading } from "../core/outline/types";
-import { isHostToWebview, type OutlineLayout, type WebviewToHost } from "../core/protocol/messages";
+import {
+  isHostToWebview,
+  type OutlineLayout,
+  type PageExtras,
+  type WebviewToHost,
+} from "../core/protocol/messages";
 import { applyClean, openMore } from "./clean";
 import { forgetCodePeeks, initCodePeek, showCodePeek } from "./code-actions";
 import { drawDiagrams } from "./diagrams";
@@ -36,7 +41,16 @@ let hashRevealed = false;
 let lastDrawn: { fileName: string; html: string; readingTools: boolean } | undefined;
 if (SNAPSHOT) applySavedTheme();
 const state = new OutlineState();
-initExtras((m) => vscode.postMessage(m), SNAPSHOT);
+initExtras(
+  (m) => vscode.postMessage(m),
+  SNAPSHOT,
+  () => {
+    if (SNAPSHOT && app && lastDrawn) {
+      render(app, lastDrawn.fileName, lastDrawn.html, lastDrawn.readingTools);
+      applyExtras(undefined);
+    }
+  },
+);
 initCodePeek((m) => vscode.postMessage(m), SNAPSHOT);
 let printed = false;
 /** 3.0: the reading look of the latest render (Clean view on unless the reader turned it off). */
@@ -60,9 +74,8 @@ window.addEventListener("message", (event: MessageEvent<unknown>) => {
       headings = message.headings;
       adoptLayout(message.layout, SNAPSHOT);
       look = message.extras?.look ?? look;
-      render(app, message.fileName, message.html, message.readingTools === true);
       forgetCodePeeks(); // code review 2026-11-24: a code file may have changed since its lines were shown
-      applyExtras(message.extras);
+      render(app, message.fileName, message.html, message.readingTools === true, message.extras);
       if (SNAPSHOT && !printed && document.documentElement.hasAttribute("data-autoprint")) {
         printed = true; // Export PDF: the print dialog ("Save as PDF") once the page is drawn
         setTimeout(() => window.print(), INTERNAL_TIMINGS.printDelayMs);
@@ -118,7 +131,13 @@ window.addEventListener("message", (event: MessageEvent<unknown>) => {
 });
 
 /** Draws the map, keeping the reader's place: scroll positions, focused entry, folds, filter, current section. */
-function render(root: HTMLElement, fileName: string, html: string, readingTools: boolean): void {
+function render(
+  root: HTMLElement,
+  fileName: string,
+  html: string,
+  readingTools: boolean,
+  extras?: PageExtras,
+): void {
   const oldDoc = root.querySelector<HTMLElement>(".document");
   const anchor = oldDoc ? captureAnchor(oldDoc) : undefined;
   const outlineScroll = root.querySelector(".outline-tree")?.scrollTop ?? 0;
@@ -165,6 +184,7 @@ function render(root: HTMLElement, fileName: string, html: string, readingTools:
   if (filter) filter.value = state.query;
   if (folded) setFolded(outline, true);
   state.apply(root, headings);
+  applyExtras(extras); // draw toolbar, front matter and marks BEFORE restoring scroll so prepended chrome never shifts place
   drawDiagrams(doc); // ```mermaid blocks: cached drawn at once, uncached lazily near the viewport (#56)
   if (SNAPSHOT) {
     // links to other files: shown, but inert — and saying so, instead of silently doing nothing

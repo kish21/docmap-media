@@ -38,6 +38,8 @@ export interface PlanRow {
   readonly nextTask?: string;
   /** In an `archive/`, `_archive/`, `archived/` or `old/` folder: kept for the record, never needs attention. */
   readonly archived?: boolean;
+  /** True when the file's name, title, or front matter explicitly marks it as a plan/RFC/spec/design/roadmap. */
+  readonly isPlan?: boolean;
 }
 
 export type PlanSort = "attention" | "changed" | "progress" | "date";
@@ -72,16 +74,27 @@ export function planRow(
   now: number,
   staleDays: number,
 ): PlanRow | undefined {
+  const row = docRow(text, file, modified, now, staleDays);
+  return row.isPlan ? row : undefined;
+}
+
+/** One Markdown doc's dashboard row (for every doc in the workspace, plan or not). */
+export function docRow(
+  text: string,
+  file: string,
+  modified: number,
+  now: number,
+  staleDays: number,
+): PlanRow {
   const name = file.split("/").pop() ?? file;
   const facts = analyze(text);
   const total = facts.tasksOpen + facts.tasksDone;
   const fm = frontMatter(text);
-  // a plan by its name, its title, or its front matter (status/type/kind says plan…) — nothing else
+  // a plan by its name, its title, or its front matter (status/type/kind says plan…)
   const isPlan =
     PLAN_WORDS.test(name.replace(/[-_.]/g, " ")) ||
     PLAN_WORDS.test(facts.title ?? "") ||
     fm.some((f) => /^(status|state|type|kind)$/i.test(f.key) && PLAN_WORDS.test(f.value));
-  if (!isPlan) return undefined;
   const declared = fm.find((f) => /^status$/i.test(f.key))?.value;
   const owners = new Set<string>();
   for (const f of fm)
@@ -172,6 +185,7 @@ export function planRow(
     modified,
     ...(nextTask ? { nextTask } : {}),
     archived: isArchivedPath(file),
+    isPlan,
   };
 }
 

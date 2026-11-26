@@ -41,6 +41,7 @@ export interface SavedData {
   readonly notes: NotesStore;
   readonly places: PlaceStore;
   readonly browserDir: string;
+  readonly clearInboxCache?: () => Promise<void>;
 }
 
 /** Start-up clean-up: forgets the reading place of local files that are gone. Returns how many were dropped. */
@@ -85,8 +86,10 @@ export async function clearSavedData(
     chosen = items.map((i) => i.id);
   }
   for (const id of chosen) {
-    if (id === "notes") await data.notes.clear();
-    else if (id === "places") await data.places.clear();
+    if (id === "notes") {
+      await data.notes.clear();
+      await data.clearInboxCache?.();
+    } else if (id === "places") await data.places.clear();
     else if (id === "seen") await clearSeenTexts();
     else if (id === "browser") await clearSnapshots(data.browserDir);
     else if (id === "aiConsent") await forgetAiConsent();

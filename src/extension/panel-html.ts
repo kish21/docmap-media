@@ -43,6 +43,19 @@ export function panelHtml(r: PanelResources): string {
  * nonce. The graph data rides in an inert JSON element, `<` escaped so a doc title can never end it.
  */
 export function atlasHtml(r: Omit<PanelResources, "diagrams"> & { readonly data: unknown }): string {
+  return dataPageHtml(r, "atlas", "atlas-data");
+}
+
+/** 3.3.0 interactive Plans Dashboard page: same strict nonce CSP and inert JSON payload as Doc Atlas. */
+export function plansHtml(r: Omit<PanelResources, "diagrams"> & { readonly data: unknown }): string {
+  return dataPageHtml(r, "plans", "plans-data");
+}
+
+function dataPageHtml(
+  r: Omit<PanelResources, "diagrams"> & { readonly data: unknown },
+  rootId: string,
+  dataId: string,
+): string {
   const csp = [
     "default-src 'none'",
     "base-uri 'none'",
@@ -51,7 +64,12 @@ export function atlasHtml(r: Omit<PanelResources, "diagrams"> & { readonly data:
     `script-src 'nonce-${r.nonce}'`,
     `font-src ${r.cspSource}`,
   ].join("; ");
-  const json = JSON.stringify(r.data).replace(/</g, "\\u003c");
+  const json = JSON.stringify(r.data)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
+    .replace(/&/g, "\\u0026")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029");
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -63,8 +81,8 @@ export function atlasHtml(r: Omit<PanelResources, "diagrams"> & { readonly data:
 <title>${escapeHtml(r.title)}</title>
 </head>
 <body>
-<div id="atlas"></div>
-<script type="application/json" id="atlas-data">${json}</script>
+<div id="${rootId}"></div>
+<script type="application/json" id="${dataId}">${json}</script>
 <script nonce="${r.nonce}" src="${r.script}"></script>
 </body>
 </html>`;

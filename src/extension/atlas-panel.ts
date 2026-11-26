@@ -31,6 +31,8 @@ export function showAtlas(
       retainContextWhenHidden: true,
     });
     current.onDidDispose(() => {
+      listening?.dispose();
+      listening = undefined;
       current = undefined;
     });
   }
@@ -58,7 +60,6 @@ export function showAtlas(
     }
   });
   listening = listener;
-  panel.onDidDispose(() => listener.dispose());
   const w = panel.webview;
   w.html = atlasHtml({
     cspSource: w.cspSource,

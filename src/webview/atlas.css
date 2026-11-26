@@ -75,9 +75,53 @@ main {
   flex-direction: column;
   overflow: hidden;
 }
+.mode-bar {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+.mode-pill {
+  flex: 1;
+  border: 1px solid var(--border);
+  background: var(--background);
+  color: var(--muted-foreground);
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.85em;
+}
+.mode-pill:hover {
+  background: var(--hover);
+  color: var(--foreground);
+}
+.mode-pill.on {
+  border-color: var(--primary);
+  background: var(--active);
+  color: var(--active-foreground);
+  font-weight: 600;
+}
 .top {
   padding: 10px 16px;
   border-bottom: 1px solid var(--border);
+}
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.back-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 .crumbs {
   font-size: 0.9em;
@@ -124,8 +168,7 @@ button.action:hover {
   display: none;
 }
 button.list-toggle {
-  float: right;
-  margin-left: 8px;
+  flex-shrink: 0;
 }
 svg {
   flex: 1;
@@ -158,7 +201,7 @@ svg {
   stroke-width: 2.5;
 }
 .node.more {
-  cursor: default;
+  cursor: pointer;
 }
 .node.more rect {
   stroke: var(--muted-foreground);
@@ -182,10 +225,45 @@ svg {
   fill: var(--muted-foreground);
   font-size: 12px;
 }
-.hint {
-  position: absolute;
-  left: 16px;
-  bottom: 8px;
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 6px 16px;
+  border-top: 1px solid var(--border);
   font-size: 0.85em;
   color: var(--muted-foreground);
+}
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  border: 2px solid var(--border);
+  background: var(--background);
+}
+.swatch-me {
+  border-color: var(--ring);
+}
+.swatch-feature {
+  border-color: var(--changed);
+}
+.swatch-doc {
+  border-color: var(--primary);
+}
+.swatch-code {
+  border-color: var(--added);
 }

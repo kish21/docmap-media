@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "docmap — Markdown Outline & Reader",
+  "version": "3.3.0",
+  "description": "Read local Markdown files and GitHub READMEs with a navigable outline, Quick read, themes, Mermaid diagrams, and copy-only AI prompts. Free, offline, zero telemetry.",
+  "icons": {
+    "16": "icons/icon128.png",
+    "48": "icons/icon128.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": [],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'none';"
+  },
+  "content_scripts": [
+    {
+      "matches": ["file:///*.md", "file:///*.markdown", "file:///*.MD", "file:///*.MARKDOWN"],
+      "css": ["tokens.css", "styles.css", "chrome-local.css"],
+      "js": ["local.js"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["https://github.com/*"],
+      "css": ["github.css"],
+      "js": ["github.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["mermaid.js"],
+      "matches": ["file://*/*"]
+    }
+  ]
+}

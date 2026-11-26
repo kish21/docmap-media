@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -54,5 +54,29 @@ describe("MCP server", () => {
     expect(readDoc("/etc/hosts", dir)).toBeUndefined();
     expect(readDoc("src/app.ts", dir)).toBeUndefined();
     expect(callTool("docmap_outline", { file: "../x.md" }, dir)).toMatchObject({ isError: true });
+  });
+
+  it("refuses symlinks pointing to secret .env files in docmap_check_doc and readDoc", () => {
+    writeFileSync(path.join(dir, "src", ".env"), "SECRET=123\n");
+    writeFileSync(
+      path.join(dir, "docs", "env-ref.md"),
+      "# Env\n\nSee `src/app.ts` and `src/link-to-env.txt`.\n",
+    );
+    let symlinkCreated = false;
+    try {
+      symlinkSync(path.join(dir, "src", ".env"), path.join(dir, "src", "link-to-env.txt"));
+      symlinkSync(path.join(dir, "src", ".env"), path.join(dir, "docs", "link-to-env.md"));
+      symlinkCreated = true;
+    } catch {
+      // On Windows without Developer Mode, symlink creation may fail with EPERM
+    }
+    const res = callTool("docmap_check_doc", { file: "docs/env-ref.md" }, dir);
+    expect(res.isError).toBe(false);
+    // Real code file exists; symlink pointing to .env must NOT be confirmed as existing
+    expect(res.text).not.toContain("`src/app.ts`");
+    if (symlinkCreated) {
+      expect(res.text).toContain("`src/link-to-env.txt`");
+      expect(readDoc("docs/link-to-env.md", dir)).toBeUndefined();
+    }
   });
 });

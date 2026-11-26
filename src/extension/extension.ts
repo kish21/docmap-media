@@ -23,6 +23,8 @@ import { installServer, setupAgentTools } from "./mcp-setup";
 import { NotesStore } from "./notes";
 import { isPageShowing, PageEditorProvider, showPage, showSource } from "./page-editor";
 import { PlaceStore } from "./places";
+import { showPlansDashboard } from "./plans-panel";
+import { QuickLaunchProvider } from "./quick-launch";
 import { disposeRepoFacts } from "./repo-facts";
 import { registerReports, writeReport } from "./reports";
 import { addRulePointers } from "./rule-pointers";
@@ -147,14 +149,15 @@ export function activate(context: vscode.ExtensionContext): DocmapApi {
   // ---------- 2.0 ----------
   MapPanel.notes ??= new NotesStore(context.workspaceState);
   MapPanel.placeStore ??= new PlaceStore(context.workspaceState, () => readConfig().rememberPlace);
+  const inbox = new DocsInbox(MapPanel.notes, context.workspaceState);
   // #41: throwaway data goes automatically (places of deleted files); the rest only through the command
   const saved: SavedData = {
     notes: MapPanel.notes,
     places: MapPanel.placeStore,
     browserDir: snapshotsDir(context),
+    clearInboxCache: () => inbox.clearCache(),
   };
   void cleanUpSavedData(saved);
-  const inbox = new DocsInbox(MapPanel.notes, context.workspaceState);
   // 3.0: pages docmap writes (Plans dashboard, Decision log) open as a preview, read-only, never asking to be saved
   context.subscriptions.push(registerReports());
   initSeenTexts(context.globalStorageUri.fsPath);
@@ -171,6 +174,14 @@ export function activate(context: vscode.ExtensionContext): DocmapApi {
   // #52: Home on start is opt-in (off by default) so opening a workspace never triggers background scans
   if (readConfig().homeOnStart)
     void inbox.homeOnStart(showReport).catch((e) => log().warn(`home on start: ${String(e)}`));
+  // 3.3.0: labeled Quick Launch view in the dedicated docmap Activity Bar sidebar
+  try {
+    context.subscriptions.push(
+      vscode.window.createTreeView("docmap.quickLaunch", { treeDataProvider: new QuickLaunchProvider() }),
+    );
+  } catch (error) {
+    logger.warn(`Quick Launch view not available (reload the window after an update): ${String(error)}`);
+  }
   // A view the editor does not know yet throws ("No view is registered with id: docmap.inbox") — seen after an
   // update without a window reload, when the editor still has the old manifest's views (owner report, 2.0.2). Only
   // the inbox is skipped then: everything after this line (review, export, writing, prompts) must still register.
@@ -223,7 +234,25 @@ export function activate(context: vscode.ExtensionContext): DocmapApi {
     vscode.commands.registerCommand("docmap.inbox.askDupes", (node, id) => inbox.askDupes(node, id)),
     vscode.commands.registerCommand("docmap.inbox.whyStale", (node) => inbox.whyStale(node)),
     vscode.commands.registerCommand("docmap.decisionLog", () => inbox.decisionLog(showReport)),
-    vscode.commands.registerCommand("docmap.plansDashboard", () => inbox.plansDashboard(showReport)),
+    vscode.commands.registerCommand("docmap.plansDashboard", async () => {
+      const openInteractive = async (rescan = false) => {
+        const data = await inbox.plansData(rescan);
+        showPlansDashboard(context, data, {
+          refresh: () => openInteractive(true),
+          setSort: async (sort) => {
+            inbox.setPlanSort(sort);
+            await openInteractive(false);
+          },
+          exportMd: () => inbox.exportPlans(false),
+          exportCsv: () => inbox.exportPlans(true),
+          askAgent: () => inbox.askPlansAgent(),
+          newPlan: async () => {
+            await newDocFromTemplate("plan");
+          },
+        });
+      };
+      await openInteractive(true);
+    }),
     // 2026-11-24: one home page for the daily questions (owner: "I only use 1–2 features")
     vscode.commands.registerCommand("docmap.home", () => inbox.home(showReport)),
     // 3.0: a vision, scope, plan, spec… in the shapes docmap reads best (type and title may be passed, for tests)
@@ -389,8 +418,11 @@ async function chooseLook(): Promise<void> {
   const themes: [string, string, string][] = [
     ["vscode", "Follow VS Code", "Your editor's colours (default)"],
     ["paper", "Paper", "Warm, book-like, serif"],
-    ["github", "GitHub", "Familiar, clean"],
+    ["github", "GitHub", "Familiar, clean light"],
+    ["github-dark", "GitHub Dark", "Familiar, clean dark"],
     ["night", "Night", "Dark and soft on the eyes"],
+    ["warm-dark", "Warm Dark", "Soft espresso dark, serif"],
+    ["solarized-light", "Solarized Light", "Classic warm cream"],
     ["focus", "Focus", "One calm column, nothing else"],
   ];
   const items: Item[] = [
@@ -435,7 +467,7 @@ async function whatsNew(context: vscode.ExtensionContext): Promise<void> {
   if (!before || minor(before) === minor(now) || context.extensionMode === vscode.ExtensionMode.Test) return;
   const finder = "What can docmap do?";
   const pick = await vscode.window.showInformationMessage(
-    `All-in-One Markdown Viewer ${minor(now)}: fewer false ✗ marks, click a file name to open it, comment on any words for your AI, and every command in one list.`,
+    `All-in-One Markdown Viewer ${minor(now)}: dedicated docmap Activity Bar sidebar, a calm 4-control preview top bar, and a 1-click Look popover with 8 reading themes.`,
     "What's new (with examples)",
     finder,
   );
