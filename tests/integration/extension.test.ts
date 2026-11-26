@@ -1252,28 +1252,40 @@ suite("3.0 — no readiness score", () => {
 });
 
 suite("3.0 — plans dashboard", () => {
-  test("lists the workspace's plans on a read-only preview page that links to each", async () => {
-    await vscode.commands.executeCommand("docmap.plansDashboard");
-    const uri = vscode.Uri.from({ scheme: "docmap-report", path: "/Plans dashboard.md" });
+  test("lists the workspace's plans in the interactive Plans Dashboard panel", async () => {
+    const data = await vscode.commands.executeCommand<{
+      rows: {
+        file: string;
+        title: string;
+        done: number;
+        total: number;
+        status: string;
+        owners: string[];
+        isPlan: boolean;
+      }[];
+    }>("docmap.plansDashboard");
+    const tabs = () => vscode.window.tabGroups.all.flatMap((g) => g.tabs);
+    await until("the Plans Dashboard tab", () => tabs().some((t) => t.label === "Plans Dashboard"), 15000);
+    const plan = data?.rows.find((r) => r.file === "readiness-plan.md");
+    assert.ok(plan, "expected readiness-plan.md in Plans Dashboard data");
+    assert.strictEqual(plan.title, "Search revamp plan");
+    assert.strictEqual(plan.done, 1);
+    assert.strictEqual(plan.total, 2);
+    assert.strictEqual(plan.status, "in progress");
+    assert.deepStrictEqual(plan.owners, ["@priya"]);
+    assert.strictEqual(plan.isPlan, true);
+    const trustDoc = data?.rows.find((r) => r.file === "trust.md");
+    assert.strictEqual(trustDoc?.isPlan, false);
+    // opening a plan in the browser still launches the local preview server
     const docmap = await api();
-    const panel = await until("dashboard page", () => docmap.testing.panelFor(uri), 30000);
-    await until("dashboard render", () => rendered(panel), 15000);
-    const text =
-      vscode.workspace.textDocuments.find((d) => d.uri.toString() === uri.toString())?.getText() ?? "";
-    assert.match(
-      text,
-      /\[Search revamp plan\]\(readiness-plan\.md\) \[🌐\]\(readiness-plan\.md#open-in-browser "Open this plan in the browser"\) \| 1\/2 \(50%\) \| in progress \| @priya/,
-    );
-    assert.doesNotMatch(text, /trust\.md/);
-    // grouped by folder; the 🌐 beside a plan opens that plan in the browser
-    assert.match(text, /## Plans by folder\n\n### Top folder\n/);
     const opened: vscode.Uri[] = [];
     docmap.testing.setBrowserOpener(async (u) => {
       opened.push(u);
       return true;
     });
     try {
-      await panel.receive({ type: "openLink", href: "readiness-plan.md#open-in-browser" });
+      const planUri = vscode.Uri.file(path.join(root(), "readiness-plan.md"));
+      await vscode.commands.executeCommand("docmap.openInBrowser", planUri);
       await until("plan opened in the browser", () => opened[0]);
       assert.match(opened[0]?.toString(true) ?? "", /^http:\/\/127\.0\.0\.1:\d+\//);
     } finally {

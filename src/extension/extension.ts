@@ -238,7 +238,9 @@ export function activate(context: vscode.ExtensionContext): DocmapApi {
       const openInteractive = async (rescan = false) => {
         const data = await inbox.plansData(rescan);
         showPlansDashboard(context, data, {
-          refresh: () => openInteractive(true),
+          refresh: async () => {
+            await openInteractive(true);
+          },
           setSort: async (sort) => {
             inbox.setPlanSort(sort);
             await openInteractive(false);
@@ -250,8 +252,9 @@ export function activate(context: vscode.ExtensionContext): DocmapApi {
             await newDocFromTemplate("plan");
           },
         });
+        return data;
       };
-      await openInteractive(true);
+      return openInteractive(true);
     }),
     // 2026-11-24: one home page for the daily questions (owner: "I only use 1–2 features")
     vscode.commands.registerCommand("docmap.home", () => inbox.home(showReport)),
