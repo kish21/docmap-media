@@ -111,7 +111,11 @@ export function applyExtras(extras: PageExtras | undefined): void {
 const MARK_LABEL = { approve: "Approved", question: "Question", change: "Change requested" } as const;
 const MARK_ICON = { approve: "✓", question: "?", change: "✎" } as const;
 
+let detachProgress: (() => void) | undefined;
+
 function clear(prose: HTMLElement): void {
+  detachProgress?.();
+  detachProgress = undefined;
   for (const el of document.querySelectorAll(`.${ADDED}`)) el.remove();
   for (const el of document.querySelectorAll("[data-changed], [data-review]")) {
     el.removeAttribute("data-changed");
@@ -290,6 +294,14 @@ function keyPointsStrip(prose: HTMLElement): void {
     t.append(el("span", "kp-switch"), document.createTextNode("Clean view"));
     t.dataset.on = String(!clean);
     actions.append(t);
+    if (current.inTab && !current.report)
+      actions.append(
+        button("✎ Source", "kp-source", "Switch this tab to the raw Markdown text (Ctrl+Alt+V)"),
+      );
+    if (current.inTab && !current.report)
+      actions.append(
+        button("✎ Source", "kp-source", "Switch this tab to the raw Markdown text (Ctrl+Alt+V)"),
+      );
     actions.append(button("Plans", "kp-plans", "Open Plans Dashboard"));
     if (!current.report) actions.append(button("Atlas", "kp-atlas", "Open Doc Atlas for this doc"));
     actions.append(
@@ -609,11 +621,23 @@ function progressBar(): void {
   const bar = el("div", `dm-progress ${ADDED}`);
   bar.setAttribute("aria-hidden", "true");
   doc.prepend(bar);
+  let frame = 0;
   const update = () => {
-    const max = doc.scrollHeight - doc.clientHeight;
-    bar.style.setProperty("--progress", max > 0 ? String(Math.min(1, doc.scrollTop / max)) : "0");
+    if (frame) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      const max = doc.scrollHeight - doc.clientHeight;
+      bar.style.setProperty("--progress", max > 0 ? String(Math.min(1, doc.scrollTop / max)) : "0");
+    });
   };
   doc.addEventListener("scroll", update, { passive: true });
+  detachProgress = () => {
+    doc.removeEventListener("scroll", update);
+    if (frame) {
+      cancelAnimationFrame(frame);
+      frame = 0;
+    }
+  };
   // a fresh page starts at the top; any scroll (the reader's, or the render putting their place back) updates it.
   // Reading the page height here would lay out the whole page mid-render (1 MB guardrail).
   bar.style.setProperty("--progress", "0");

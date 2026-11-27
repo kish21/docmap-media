@@ -52,7 +52,7 @@ const literal = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 export function declarationLine(text: string, name: string): number | undefined {
   const n = literal(name);
   const re = new RegExp(
-    `\\b(?:function\\*?|class|interface|type|enum|def|func|fn|struct|trait|module)\\s+${n}\\b|\\b(?:const|let|var)\\s+${n}\\s*=\\s*(?:async\\s*)?(?:\\(|function|\\w+\\s*=>)|^\\s*(?:public|private|protected|static|async|\\s)*${n}\\s*\\([^)]*\\)\\s*(?::\\s*[\\w<>[\\], |.]+)?\\s*\\{`,
+    `\\b(?:function\\*?|class|interface|type|enum|def|func|fn|struct|trait|module)\\s+${n}\\b|\\b(?:const|let|var)\\s+${n}\\s*=\\s*(?:async\\s*)?(?:\\(|function|\\w+\\s*=>)|^\\s*(?:(?:public|private|protected|static|async)\\s+)*${n}\\s*\\([^)]*\\)\\s*(?::\\s*[\\w<>[\\], |.]+)?\\s*\\{`,
     "m",
   );
   const m = re.exec(text);

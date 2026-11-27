@@ -2,6 +2,7 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 import { INTERNAL_LIMITS, INTERNAL_TIMINGS } from "../core/config/config";
 import { pathIndex, type RepoFacts } from "../core/trust/check";
+import { isSecretEnvFile } from "./links";
 import { log } from "./log";
 
 /**
@@ -118,7 +119,7 @@ async function build(folder: vscode.WorkspaceFolder): Promise<Index> {
       EXCLUDE_GLOB,
       INTERNAL_LIMITS.repoFiles + 1,
     )
-  ).filter((u) => !SKIP_DIRS.test(u.fsPath));
+  ).filter((u) => !SKIP_DIRS.test(u.fsPath) && !isSecretEnvFile(u.fsPath));
   const paths = pathIndex(all.map(rel));
   const files = new Set(all.map(rel));
   const read = async (p: string) => {

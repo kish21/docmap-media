@@ -7,6 +7,7 @@ import type { InferHeadings } from "../core/markdown/reading-rules";
 export function readConfig(): DocmapConfig {
   const s = vscode.workspace.getConfiguration("docmap");
   return resolveConfig({
+    openPreviewByDefault: s.get("openPreviewByDefault"),
     largeFileBytes: s.get("largeFileBytes"),
     readingTools: s.get("readingTools"),
     inferHeadings: s.get("inferHeadings"),

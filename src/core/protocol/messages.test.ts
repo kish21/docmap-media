@@ -186,4 +186,17 @@ describe("3.3.0 interactive Plans Dashboard messages", () => {
     expect(isPlansToHost({ type: "plansSort", sort: "progress" })).toBe(true);
     expect(isPlansToHost({ type: "plansSort", sort: "random" })).toBe(false);
   });
+
+  it("rejects oversized headingId in jump messages", async () => {
+    const { isWebviewToHost, MAX_HEADING_ID_LENGTH } = await import("./messages");
+    expect(isWebviewToHost({ type: "jump", docVersion: 1, line: 0, headingId: "ok" })).toBe(true);
+    expect(
+      isWebviewToHost({
+        type: "jump",
+        docVersion: 1,
+        line: 0,
+        headingId: "a".repeat(MAX_HEADING_ID_LENGTH + 1),
+      }),
+    ).toBe(false);
+  });
 });

@@ -50,7 +50,7 @@ import { deliverPrompt, pickAndDeliver, relativePath } from "./agent";
 import { mapLimit } from "./concurrency";
 import { codeItems } from "./feature-code";
 import { gitUserName, lastAuthors } from "./git";
-import { isCodeFile } from "./links";
+import { createPathChecker, isCodeFile } from "./links";
 import { log } from "./log";
 import type { NotesStore } from "./notes";
 import { repoFactsFor } from "./repo-facts";
@@ -493,28 +493,35 @@ export class DocsInbox implements vscode.TreeDataProvider<Node>, vscode.Disposab
   ): Promise<void> {
     if (gen !== this.scanGen) return;
     const extraMissing = new Map<string, string[]>();
-    for (const [i, e] of entries.entries()) {
+    const checkers = new Map<string, (candidate: string) => boolean>();
+    for (const e of entries) {
       if (gen !== this.scanGen) return;
       if (e.uri.scheme !== "file") continue;
       const dir = path.dirname(e.uri.fsPath);
       const root = vscode.workspace.getWorkspaceFolder(e.uri)?.uri.fsPath ?? dir;
+      let existsInRoot = checkers.get(root);
+      if (!existsInRoot) {
+        existsInRoot = createPathChecker(root);
+        checkers.set(root, existsInRoot);
+      }
+      const repo = await repoFactsFor(e.uri).catch(() => undefined);
       for (const p of e.scan.facts.codePaths.slice(0, INTERNAL_LIMITS.pathChecksPerFile)) {
         if (gen !== this.scanGen) return;
         const exists =
           isUnchecked(p) ||
-          (await anyExists([
+          // fast in-memory check first before touching disk
+          (repo?.hasPath(p) ?? false) ||
+          [
             ...pathCandidates(path.relative(root, dir), p).map((c) => path.resolve(root, c)),
             path.resolve(dir, p),
-          ])) ||
-          // a shortened path (`webview/extras.ts` for `src/webview/extras.ts`): the trust markers' file index
-          ((await repoFactsFor(e.uri).catch(() => undefined))?.hasPath(p) ?? false);
+          ].some(existsInRoot);
         if (!exists) {
           const list = extraMissing.get(e.uri.fsPath) ?? [];
           list.push(p);
           extraMissing.set(e.uri.fsPath, list);
         }
       }
-      if ((i & 15) === 15) await yieldToEventLoop();
+      await yieldToEventLoop();
     }
     if (gen !== this.scanGen) return;
 
@@ -1281,18 +1288,6 @@ export class DocsInbox implements vscode.TreeDataProvider<Node>, vscode.Disposab
     }
     open(await writeReport("Decision log", lines.join("\n")));
   }
-}
-
-async function anyExists(paths: readonly string[]): Promise<boolean> {
-  for (const p of paths) {
-    try {
-      await vscode.workspace.fs.stat(vscode.Uri.file(p));
-      return true;
-    } catch {
-      // try the next
-    }
-  }
-  return false;
 }
 
 const today = () => new Date().toISOString().slice(0, 10);

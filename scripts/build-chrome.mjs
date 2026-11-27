@@ -39,6 +39,8 @@ await Promise.all([
 ]);
 
 copyFileSync("src/chrome/manifest.json", join(OUT, "manifest.json"));
+copyFileSync("src/chrome/popup.html", join(OUT, "popup.html"));
+copyFileSync("src/chrome/popup.js", join(OUT, "popup.js"));
 copyFileSync("src/webview/tokens.css", join(OUT, "tokens.css"));
 copyFileSync("src/webview/styles.css", join(OUT, "styles.css"));
 copyFileSync("src/chrome/chrome-local.css", join(OUT, "chrome-local.css"));

@@ -9,6 +9,8 @@ export interface DocmapConfig {
   readonly updateDebounceMs: number;
   /** Files above this size show the "very large file" state first (bytes). Default: 2 MB (2,097,152 bytes). */
   readonly largeFileBytes: number;
+  /** Open .md / .markdown files in docmap's Preview tab by default (false sets VS Code's editorAssociations back to raw text). */
+  readonly openPreviewByDefault: boolean;
   /** Reading tools: skim, section sizes, fold to level, structure hints, footnotes/tasks/callouts. Off by default. */
   readonly readingTools: boolean;
   /** Structure hints (with reading tools on): when lines that act as headings join the outline. */
@@ -54,6 +56,7 @@ export interface DocmapConfig {
 export const DEFAULT_CONFIG: DocmapConfig = {
   updateDebounceMs: 300,
   largeFileBytes: 2 * 1024 * 1024,
+  openPreviewByDefault: true,
   readingTools: true,
   inferHeadings: "auto",
   rememberPlace: true,
@@ -96,6 +99,10 @@ export function resolveConfig(raw: Partial<Record<keyof DocmapConfig, unknown>>)
   return {
     updateDebounceMs: nonNegativeInt(raw.updateDebounceMs, DEFAULT_CONFIG.updateDebounceMs),
     largeFileBytes: nonNegativeInt(raw.largeFileBytes, DEFAULT_CONFIG.largeFileBytes),
+    openPreviewByDefault:
+      typeof raw.openPreviewByDefault === "boolean"
+        ? raw.openPreviewByDefault
+        : DEFAULT_CONFIG.openPreviewByDefault,
     readingTools: typeof raw.readingTools === "boolean" ? raw.readingTools : DEFAULT_CONFIG.readingTools,
     inferHeadings:
       raw.inferHeadings === "auto" || raw.inferHeadings === "always" || raw.inferHeadings === "off"

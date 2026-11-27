@@ -11,7 +11,7 @@ mkdirSync(path.join(dir, "src"));
 writeFileSync(path.join(dir, "src", "app.ts"), "export {}\n");
 writeFileSync(
   path.join(dir, "docs", "plan.md"),
-  "# Rollout plan\n\n- [x] a\n- [ ] b\n\nShould we cache?\n\nSee `src/app.ts` and `src/gone.ts`.\n",
+  "# Rollout plan\n\n- [x] a\n- [ ] b\n\nShould we cache?\n\nDecision: ship offline-first.\n\nSee `src/app.ts` and `src/gone.ts`.\n",
 );
 writeFileSync(path.join(dir, "node_modules", "x", "README.md"), "# dep\n");
 
@@ -35,6 +35,9 @@ describe("MCP server", () => {
     expect(callTool("docmap_open_questions", {}, dir).text).toContain(
       "- Should we cache? _([line 6](docs/plan.md#L6))_",
     );
+    expect(callTool("docmap_decisions", {}, dir).text).toContain("ship offline-first.");
+    expect(callTool("docmap_search", { query: "offline-first" }, dir).text).toContain("docs/plan.md");
+    expect(callTool("docmap_search", { query: "a" }, dir)).toMatchObject({ isError: true });
     expect(callTool("docmap_check_doc", { file: "docs/plan.md" }, dir).text).toContain("- `src/gone.ts`");
     expect(callTool("docmap_check_doc", { file: "docs/plan.md" }, dir).text).not.toContain("src/app.ts`\n");
     const call = handle(

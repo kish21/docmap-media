@@ -75,11 +75,11 @@ function resolveWith(
   const base = decodedPath.startsWith("/") ? (rootContaining(docDir, lexicalAllowed, p) ?? docDir) : docDir;
   const lexical = p.resolve(base, decodedPath.replace(/^\/+/, ""));
   // 1. lexical confinement first — nothing outside the roots is ever looked up
-  if (rootContaining(lexical, lexicalAllowed, p) === undefined) return undefined;
+  if (rootContaining(lexical, lexicalAllowed, p) === undefined || isSecretEnvFile(lexical)) return undefined;
   // 2. only then the real path (does it exist, and does a symlink lead out?) — confined again
   const real = realpath(lexical, env);
   if (real === undefined) return undefined; // does not exist
-  if (rootContaining(real, allowed, p) === undefined) return undefined; // a symlink escapes every allowed root
+  if (rootContaining(real, allowed, p) === undefined || isSecretEnvFile(real)) return undefined; // a symlink escapes every allowed root
   if (!env.isFile(real)) return undefined; // a folder or device is never a link or image target
 
   return { file: real, lexical, fragment: rawFragment ? safeDecode(rawFragment) : undefined };
@@ -142,6 +142,68 @@ const TEXT_FILE = /\.(md|markdown|mdx|txt)$/i;
 const IMAGE_FILE = /\.(png|jpe?g|gif|webp|svg|bmp|ico|avif)$/i;
 const CODE_FILE =
   /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|kt|cs|rb|php|swift|scala|c|cc|cpp|h|hpp|sql|css|scss|html|json|ya?ml|toml|sh|ps1)$/i;
+const SAFE_ENV_FILE = /^\.env\.(?:example|sample|template)$/i;
+const SECRET_KEY_FILE =
+  /^(?:\.npmrc|\.pypirc|\.envrc|\.netrc|id_rsa|id_ed25519|id_ecdsa|id_dsa)(?:\.|$)|\.(?:pem|key|p12|pfx)$/i;
+
+/** Whether a path points to a secret `.env` file (`.env`, `.env.local`, etc. — templates `.env.example`/`.sample`/`.template` are allowed). */
+export function isSecretEnvFile(filePath: string): boolean {
+  const base = path.basename(filePath.replace(/\\/g, "/"));
+  return /^\.env(?:\.|$)/i.test(base) && !SAFE_ENV_FILE.test(base);
+}
+
+/** Whether a path points to a secret `.env` file or common workspace credential/key file. */
+export function isSecretFile(filePath: string): boolean {
+  if (isSecretEnvFile(filePath)) return true;
+  const base = path.basename(filePath.replace(/\\/g, "/"));
+  return SECRET_KEY_FILE.test(base);
+}
+
+/**
+ * Resolves a workspace-relative path to a real file strictly inside `rootDir`, refusing secret files
+ * and symlink escapes (used by AI context, Copilot tools, and hover code previews).
+ */
+export function resolveConfinedFile(
+  relPath: string,
+  rootDir: string,
+  env: PathEnv = NODE_ENV,
+): string | undefined {
+  if (!relPath || hasUnsafeChar(relPath) || env.path.isAbsolute(relPath)) return undefined;
+  const p = env.path;
+  const lexicalRoot = p.resolve(rootDir);
+  const lexical = p.resolve(lexicalRoot, relPath);
+  if (rootContaining(lexical, [lexicalRoot], p) === undefined || isSecretFile(lexical)) return undefined;
+  const realRoot = realOrSelf(lexicalRoot, env);
+  const real = realpath(lexical, env);
+  if (real === undefined) return undefined;
+  if (rootContaining(real, [realRoot], p) === undefined || isSecretFile(real)) return undefined;
+  return env.isFile(real) ? real : undefined;
+}
+
+/**
+ * Whether `candidate` exists (file or folder) strictly inside canonical `rootDir`, refusing secret `.env` files
+ * and symlink escapes (used by `docmap_check_doc` so it never acts as an existence oracle for secrets or outside paths).
+ */
+export function existsConfinedPath(candidate: string, rootDir: string, env: PathEnv = NODE_ENV): boolean {
+  return createPathChecker(rootDir, env)(candidate);
+}
+
+/**
+ * Same as `existsConfinedPath`, with `rootDir`'s canonical path computed ONCE — for checking many candidates
+ * under the same workspace root without repeating `realpathSync(rootDir)` on every candidate.
+ */
+export function createPathChecker(rootDir: string, env: PathEnv = NODE_ENV): (candidate: string) => boolean {
+  const p = env.path;
+  const lexicalRoot = p.resolve(rootDir);
+  const realRoot = realOrSelf(lexicalRoot, env);
+  return (candidate: string) => {
+    if (rootContaining(candidate, [lexicalRoot], p) === undefined || isSecretEnvFile(candidate)) return false;
+    const real = realpath(candidate, env);
+    if (real === undefined) return false;
+    if (rootContaining(real, [realRoot], p) === undefined || isSecretEnvFile(real)) return false;
+    return true;
+  };
+}
 
 /**
  * A source file a docmap report may open in the editor as text (the Doc Atlas's code table). Only report pages

@@ -1,5 +1,31 @@
 # What's new
 
+## 3.3.3 — Default preview mode, 1-click Source button, outline click fix, and single help site
+
+- **Preview by default for `.md` / `.markdown` files:** opening any Markdown file now launches directly in docmap's clean Preview tab (`priority: "default"`), with a visible **✎ Source** button right in the top bar (plus `Ctrl+Alt+V`) to switch to raw text anytime, and a `docmap.openPreviewByDefault` setting to opt back into raw text by default.
+- **No surprise side-by-side raw text on outline clicks:** clicking a heading in the outline no longer force-opens the raw `.md` source file beside a standalone preview or report; side-by-side sync still works whenever you explicitly have the source open next to the preview.
+- **Single source of truth for help:** **Help (All Features)** (`docmap.help`) now opens the live help website (`https://kish21.github.io/docmap-help/`) directly, removing the duplicate bundled `HELP.md`.
+
+## 3.3.2 — Chrome Tier 1 reader, 6-tool MCP + 1-command skill install, and unified onboarding
+
+- **Chrome MV3 extension Tier 1 upgrades & onboarding popup:**
+  - Adds safe local relative image rendering on `file://`, **Where this stands** card + **Clean view** toggle, **Plan progress** + **Questions & Tasks** drawer with pill outline badges, **Local Review & Highlights → Copy Review for AI**, **1-Click Slides Mode**, and `raw.githubusercontent.com` / `gist.githubusercontent.com` support.
+  - Adds a zero-permission toolbar popup (`popup.html`) explaining the 1-time *Allow access to file URLs* toggle with a 1-click copy button for `chrome://extensions`, supported sites, and keyboard shortcuts.
+  - Fixes Mermaid isolated-world loading on `chrome-extension://`, outline collapse `‹` button container styling, and outline badge alignment.
+- **2 new agent tools (`docmap_decisions` & `docmap_search`) across MCP and VS Code Copilot:**
+  - `docmap_decisions` extracts every recorded `Decision:` / `We decided:` / `We chose:` across workspace Markdown docs with line numbers.
+  - `docmap_search` runs case-insensitive plain-text search across all Markdown docs, returning files, heading trails, line numbers, and snippets.
+- **`docmap-mcp` CLI polish & 1-command skill install:**
+  - Adds `--help`, `--version`, `--print-skill`, and `--install-skill [claude|agents]` to install `SKILL.md` in one command, plus a friendly TTY usage hint so running `npx -y docmap-mcp` interactively never hangs silently.
+- **Unified docs & Get Started walkthrough:** adds a **Use docmap everywhere** overview to `README.md` covering VS Code, Chrome, `docmap-mcp`, and `SKILL.md`, and adds the default `.md` viewer tip to the VS Code walkthrough.
+
+## 3.3.1 — security hardening, packaging hygiene, and scroll/Chrome fixes
+
+- **Unified `.env` secret refusal & symlink confinement:** all workspace file reads (AI tools, `docmap_check_doc`, code peek, and the repo path index) now share `realpath`-based workspace confinement and refuse `.env` / `.env.*` secret files (allowing only `.env.example`, `.env.sample`, and `.env.template`).
+- **Webview scroll-restore stability:** cancels stale scroll frames on re-render and waits two animation frames after anchor restore settles so scroll position no longer jumps during rapid edits.
+- **Chrome MV3 extension hardening & CI coverage:** prevents `#app` DOM-clobbering collisions, safely decodes malformed URL hashes on local `.md` pages, and runs Chrome extension build + browser tests in both CI and release workflows.
+- **Packaging & live-server polish:** excludes `dist/*.zip` from `.vsix` packaging and guards SSE writes against closed or destroyed responses.
+
 ## 3.3.0 — UX discoverability, dedicated sidebar, and first-class reading themes
 
 - **Dedicated docmap Activity Bar sidebar:** brings **Quick Launch** (labeled one-click items for Home, Plans Dashboard,

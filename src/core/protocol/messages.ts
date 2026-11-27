@@ -410,7 +410,8 @@ export function isWebviewToHost(v: unknown): v is WebviewToHost {
       return (
         isVersion(v.docVersion) &&
         isLine(v.line) &&
-        (v.headingId === undefined || typeof v.headingId === "string")
+        (v.headingId === undefined ||
+          (typeof v.headingId === "string" && v.headingId.length <= MAX_HEADING_ID_LENGTH))
       );
     default:
       return false;

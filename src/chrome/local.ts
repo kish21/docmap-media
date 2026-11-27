@@ -1,8 +1,11 @@
 import { DEFAULT_CONFIG } from "../core/config/config";
+import { analyze } from "../core/insights/analyze";
+import { type DocItem, docItems } from "../core/insights/items";
+import { standing } from "../core/insights/standing";
 import { createMarkdownItEngine, utf8Bytes } from "../core/markdown/markdown-it-engine";
 import { currentHeadingIndex } from "../core/outline/current";
 import type { Heading } from "../core/outline/types";
-import { applyClean } from "../webview/clean";
+import { applyClean, openMore } from "../webview/clean";
 import { drawDiagrams } from "../webview/diagrams";
 import { ancestorIds, HeadingTracker } from "../webview/document-position";
 import { handleKey } from "../webview/keyboard";
@@ -17,13 +20,17 @@ import { adoptLayout, mountOutlinePane, storeLayout, toggleOutline } from "../we
 import { OutlineState } from "../webview/outline-state";
 import { renderOutline } from "../webview/outline-view";
 import { matchPictureTheme } from "../webview/pictures";
+import { drawStanding } from "../webview/standing-view";
 import { renderState } from "../webview/state-view";
 import { applySavedTheme } from "../webview/theme-switch";
 import { createPromptMenu } from "./prompts-menu";
+import { createReviewController, type ReviewController } from "./review";
+import { createSlidesController, type SlidesController } from "./slides";
 
 /**
- * Chrome MV3 content script for local `.md` / `.markdown` files (`file:///*.md`, `file:///*.markdown`).
- * Read-only, offline, zero telemetry, safe HTML rendering (`html: false`, ADR-0002).
+ * Chrome MV3 content script for local `.md` / `.markdown` files (`file:///*.md`, `file:///*.markdown`)
+ * and raw GitHub/Gist Markdown URLs.
+ * Read-only, offline on local files, zero telemetry, safe HTML rendering (`html: false`, ADR-0002).
  */
 
 interface ChromeRuntimeLike {
@@ -33,6 +40,42 @@ interface ChromeRuntimeLike {
 }
 
 const WEB_LINK = /^(?:https?|mailto):/i;
+const SAFE_IMAGE_EXT = /\.(?:png|jpe?g|gif|webp|svg|bmp|ico|avif)$/i;
+
+/**
+ * Resolves a relative local image path (e.g. `./arch.png`, `images/flow.svg`) strictly inside the
+ * current document's folder on `file://` URLs. Remote URLs, traversal (`..`), and non-image files
+ * are refused so local viewing stays offline and confined.
+ */
+function resolveLocalChromeImage(src: string): string | undefined {
+  if (location.protocol !== "file:") return undefined;
+  const clean = src.split(/[?#]/)[0] ?? "";
+  if (!clean || clean.startsWith("/") || clean.includes("\\") || clean.includes(":")) return undefined;
+  let decoded: string;
+  try {
+    decoded = decodeURIComponent(clean);
+  } catch {
+    return undefined;
+  }
+  if (!SAFE_IMAGE_EXT.test(decoded)) return undefined;
+  const parts = decoded.split("/");
+  if (parts.some((seg) => seg === ".." || hasControlChar(seg))) return undefined;
+  try {
+    const baseDir = new URL("./", location.href).href;
+    const resolved = new URL(clean, baseDir).href;
+    return resolved.startsWith(baseDir) ? resolved : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function hasControlChar(s: string): boolean {
+  for (let i = 0; i < s.length; i++) {
+    const c = s.charCodeAt(i);
+    if (c < 0x20 || c === 0x7f) return true;
+  }
+  return false;
+}
 
 function getMermaidUrl(): string {
   const existing = document.body.dataset.diagrams;
@@ -99,6 +142,7 @@ export function mountLocalViewer(): void {
     app.id = "app";
     document.body.replaceChildren(app);
   }
+  app.classList.add("map-root");
 
   const bytes = utf8Bytes(raw);
   if (bytes > DEFAULT_CONFIG.largeFileBytes) {
@@ -115,7 +159,11 @@ export function mountLocalViewer(): void {
 
 function renderLocalDocument(app: HTMLElement, fileName: string, raw: string): void {
   const engine = createMarkdownItEngine();
-  const parsed = engine.parse(raw, 1, { readingTools: true, inferHeadings: "auto" });
+  const parsed = engine.parse(raw, 1, {
+    readingTools: true,
+    inferHeadings: "auto",
+    resolveImage: resolveLocalChromeImage,
+  });
 
   if (!parsed.ok) {
     const err = document.createElement("main");
@@ -129,14 +177,49 @@ function renderLocalDocument(app: HTMLElement, fileName: string, raw: string): v
 
   const headings: readonly Heading[] = parsed.document.headings;
   const html = parsed.document.html;
+  const facts = analyze(raw);
+  const items: readonly DocItem[] = docItems(raw);
+  const questions = items.filter((it) => it.kind === "question");
+  const openTasks = items.filter((it) => it.kind === "task");
+  const st = standing(raw, headings);
+  const hasStanding =
+    st.parts.length > 0 || st.events.length > 1 || st.disagree.length > 0 || Boolean(st.status);
+
+  // Map each actionable item to its enclosing heading id so clicking jumps straight there
+  const headingForLine = (line: number): Heading | undefined => {
+    let found: Heading | undefined;
+    for (const h of headings) {
+      if (h.line <= line) found = h;
+      else break;
+    }
+    return found;
+  };
+  const sectionCounts = new Map<string, { q: number; t: number }>();
+  for (const it of items) {
+    const h = headingForLine(it.line);
+    if (!h) continue;
+    const cur = sectionCounts.get(h.id) ?? { q: 0, t: 0 };
+    if (it.kind === "question") cur.q++;
+    else cur.t++;
+    sectionCounts.set(h.id, cur);
+  }
+
   const state = new OutlineState();
   const tracker = new HeadingTracker();
   let look = defaultLook();
+  let cleanMode = look.clean !== false;
   let promptMenuClose: (() => void) | undefined;
+  let reviewCtrl: ReviewController | undefined;
+  let slidesCtrl: SlidesController | undefined;
+  const docKey = location.pathname || fileName;
 
   const headingById = (id: string): HTMLElement | null => {
-    const el = document.getElementById(id);
-    return el?.closest(".prose") ? el : null;
+    if (!id) return null;
+    try {
+      return document.querySelector<HTMLElement>(`.prose [id="${CSS.escape(id)}"]`);
+    } catch {
+      return null;
+    }
   };
 
   const setCurrent = (index: number): void => {
@@ -180,17 +263,128 @@ function renderLocalDocument(app: HTMLElement, fileName: string, raw: string): v
 
     const prose = doc.querySelector<HTMLElement>(".prose");
     if (prose) {
-      applyClean(prose, { numbers: false, fileName });
-      // Top bar: read-only badge + Look popover + Copy AI prompt
+      if (cleanMode) {
+        applyClean(prose, { numbers: false, fileName });
+        if (hasStanding) drawStanding(prose, st, "dm-x");
+      }
+
+      // Top bar: status / progress + attention pills + Clean view + Slides + Review + Look + Copy AI prompt
       const bar = document.createElement("header");
       bar.className = "dm-chrome-bar";
 
+      const left = document.createElement("div");
+      left.className = "dm-chrome-status";
+
       const badge = document.createElement("span");
       badge.className = "dm-chrome-badge";
-      badge.textContent = "docmap · read-only";
+      badge.textContent = "docmap";
+      left.append(badge);
+
+      const totalTasks = facts.tasksDone + facts.tasksOpen;
+      if (totalTasks > 0) {
+        const prog = document.createElement("span");
+        prog.className = "dm-chrome-stat";
+        prog.textContent = `${facts.tasksDone}/${totalTasks} done`;
+        prog.title = `${facts.tasksDone} completed, ${facts.tasksOpen} open tasks`;
+        left.append(prog);
+      }
+
+      // Attention drawer (Questions / Open Tasks)
+      const attentionDrawer = document.createElement("section");
+      attentionDrawer.className = "dm-chrome-drawer";
+      attentionDrawer.setAttribute("aria-label", "Questions and open tasks");
+      attentionDrawer.hidden = true;
+      let activeAttention: "question" | "task" | undefined;
+
+      const renderAttentionDrawer = (kind: "question" | "task") => {
+        const listItems = kind === "question" ? questions : openTasks;
+        attentionDrawer.replaceChildren();
+        const head = document.createElement("div");
+        head.className = "dm-drawer-head";
+        const title = document.createElement("strong");
+        title.textContent =
+          kind === "question"
+            ? `Open questions (${listItems.length}) — click to jump`
+            : `Open tasks (${listItems.length}) — click to jump`;
+        head.append(title);
+        attentionDrawer.append(head);
+
+        const ul = document.createElement("ul");
+        ul.className = "dm-drawer-list";
+        for (const it of listItems) {
+          const li = document.createElement("li");
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "dm-attention-item";
+          const sec = headingForLine(it.line);
+          const textSpan = document.createElement("span");
+          textSpan.textContent = it.text;
+          const metaSpan = document.createElement("span");
+          metaSpan.className = "dm-attention-meta";
+          metaSpan.textContent = sec ? `${sec.text} · line ${it.line + 1}` : `line ${it.line + 1}`;
+          btn.append(textSpan, metaSpan);
+          btn.addEventListener("click", () => {
+            if (sec) goToHeading(sec.id);
+          });
+          li.append(btn);
+          ul.append(li);
+        }
+        attentionDrawer.append(ul);
+      };
+
+      let qBtn: HTMLButtonElement | undefined;
+      let tBtn: HTMLButtonElement | undefined;
+      const toggleAttention = (kind: "question" | "task") => {
+        activeAttention = activeAttention === kind ? undefined : kind;
+        attentionDrawer.hidden = activeAttention === undefined;
+        qBtn?.classList.toggle("is-active", activeAttention === "question");
+        tBtn?.classList.toggle("is-active", activeAttention === "task");
+        if (activeAttention) renderAttentionDrawer(activeAttention);
+      };
+
+      if (questions.length > 0) {
+        qBtn = document.createElement("button");
+        qBtn.type = "button";
+        qBtn.className = "dm-chrome-pill dm-pill-warn";
+        qBtn.textContent = `? ${questions.length} ${questions.length === 1 ? "question" : "questions"}`;
+        qBtn.title = "Show open questions in this document";
+        qBtn.addEventListener("click", () => toggleAttention("question"));
+        left.append(qBtn);
+      }
+
+      if (openTasks.length > 0) {
+        tBtn = document.createElement("button");
+        tBtn.type = "button";
+        tBtn.className = "dm-chrome-pill";
+        tBtn.textContent = `☐ ${openTasks.length} ${openTasks.length === 1 ? "task" : "tasks"}`;
+        tBtn.title = "Show open tasks in this document";
+        tBtn.addEventListener("click", () => toggleAttention("task"));
+        left.append(tBtn);
+      }
 
       const actions = document.createElement("div");
       actions.className = "dm-chrome-actions";
+
+      const cleanBtn = document.createElement("button");
+      cleanBtn.type = "button";
+      cleanBtn.className = `dm-chrome-pill${cleanMode ? " is-active" : ""}`;
+      cleanBtn.textContent = cleanMode ? "Clean view" : "As written";
+      cleanBtn.title = "Toggle Clean view (Where this stands, folded long paragraphs, cards)";
+      cleanBtn.setAttribute("aria-pressed", String(cleanMode));
+      cleanBtn.addEventListener("click", () => {
+        cleanMode = !cleanMode;
+        look = { ...look, clean: cleanMode };
+        slidesCtrl?.exit();
+        renderPage();
+      });
+      actions.append(cleanBtn);
+
+      slidesCtrl = createSlidesController(prose);
+      if (slidesCtrl) actions.append(slidesCtrl.button);
+
+      reviewCtrl = createReviewController(fileName, docKey);
+      reviewCtrl.bindSelection(prose);
+      actions.append(reviewCtrl.button);
 
       const lookControl = createLookControl({
         addedClass: "dm-x",
@@ -211,8 +405,8 @@ function renderLocalDocument(app: HTMLElement, fileName: string, raw: string): v
       promptMenuClose = promptMenu.close;
 
       actions.append(lookControl, promptMenu.element);
-      bar.append(badge, actions);
-      prose.prepend(bar);
+      bar.append(left, actions);
+      prose.prepend(bar, attentionDrawer, reviewCtrl.drawer);
 
       // Keep external links safe; non-web relative links stay inert in local read-only view
       for (const a of prose.querySelectorAll<HTMLAnchorElement>("a[href]")) {
@@ -226,6 +420,22 @@ function renderLocalDocument(app: HTMLElement, fileName: string, raw: string): v
 
     matchPictureTheme(doc);
     const outline = renderOutline(fileName, headings, true);
+    // Add subtle per-section attention badges (?N / ☐N) in the outline
+    if (sectionCounts.size > 0) {
+      for (const row of outline.querySelectorAll<HTMLElement>(".outline-row")) {
+        const id = row.dataset.id ?? "";
+        const c = sectionCounts.get(id);
+        if (!c) continue;
+        const badge = document.createElement("span");
+        badge.className = "dm-outline-attn";
+        const parts: string[] = [];
+        if (c.q > 0) parts.push(`?${c.q}`);
+        if (c.t > 0) parts.push(`☐${c.t}`);
+        badge.textContent = parts.join(" ");
+        badge.title = `${c.q} open questions, ${c.t} open tasks in this section`;
+        row.append(badge);
+      }
+    }
     map.append(outline, doc);
     app.replaceChildren(map);
 
@@ -244,8 +454,7 @@ function renderLocalDocument(app: HTMLElement, fileName: string, raw: string): v
       filter.value = state.query;
       filter.addEventListener("input", () => {
         state.query = filter.value;
-        state.apply(app, headings);
-        tracker.refresh(headings, headingById);
+        state.applyOutlineFilter(app, headings);
       });
     }
 
@@ -254,11 +463,16 @@ function renderLocalDocument(app: HTMLElement, fileName: string, raw: string): v
     tracker.refresh(headings, headingById);
     if (headings.length > 0 && state.currentId === undefined) setCurrent(0);
 
+    let scrollFrame = 0;
     doc.addEventListener(
       "scroll",
       () => {
-        const idx = tracker.currentAt(doc.getBoundingClientRect().top + 24);
-        if (idx !== -1) setCurrent(idx);
+        if (scrollFrame) return;
+        scrollFrame = requestAnimationFrame(() => {
+          scrollFrame = 0;
+          const idx = tracker.currentAt(doc.getBoundingClientRect().top + 24);
+          if (idx !== -1) setCurrent(idx);
+        });
       },
       { passive: true },
     );
@@ -270,6 +484,14 @@ function renderLocalDocument(app: HTMLElement, fileName: string, raw: string): v
     const target = event.target as Element | null;
     closeLookOnOutsideClick(target);
     if (!target?.closest?.(".dm-ai-wrap")) promptMenuClose?.();
+    if (!target?.closest?.(".dm-review-pop")) reviewCtrl?.close();
+
+    const moreBtn = target?.closest<HTMLButtonElement>(".dm-more-btn");
+    if (moreBtn) {
+      event.preventDefault();
+      openMore(moreBtn);
+      return;
+    }
 
     const twisty = target?.closest<HTMLButtonElement>(".twisty");
     if (twisty && app) {
@@ -333,6 +555,7 @@ function renderLocalDocument(app: HTMLElement, fileName: string, raw: string): v
   });
 
   document.addEventListener("keydown", (event) => {
+    if (slidesCtrl?.handleKey(event)) return;
     if (closeLookOnEscape(event)) {
       event.preventDefault();
       event.stopPropagation();
@@ -389,15 +612,25 @@ function renderLocalDocument(app: HTMLElement, fileName: string, raw: string): v
     });
   });
 
+  const decodeHashId = (): string => {
+    const rawHash = location.hash.slice(1);
+    if (!rawHash) return "";
+    try {
+      return decodeURIComponent(rawHash);
+    } catch {
+      return rawHash;
+    }
+  };
+
   // Expose helper for hash links inside prose
   window.addEventListener("hashchange", () => {
-    const id = location.hash.slice(1);
+    const id = decodeHashId();
     if (id && headingById(id)) goToHeading(id);
   });
 
   // Initial scroll sync if a hash is present
   if (location.hash.length > 1) {
-    const id = location.hash.slice(1);
+    const id = decodeHashId();
     if (headingById(id)) goToHeading(id);
   }
 

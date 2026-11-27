@@ -77,17 +77,6 @@ export function createPromptMenu(options: PromptMenuOptions): {
   status.setAttribute("aria-live", "polite");
   status.hidden = true;
 
-  const sourceText = options.getSourceText();
-  const facts = docFacts(options.fileName, sourceText);
-  const available = promptsFor(["file", "section"], {
-    file: options.fileName,
-    docKind: facts.docKind,
-    emptySections: facts.emptySections,
-  });
-  const chosen = READ_ONLY_CHROME_PROMPTS.map((id) => available.find((p) => p.id === id)).filter(
-    (p): p is NonNullable<typeof p> => p !== undefined,
-  );
-
   let toastTimer: ReturnType<typeof setTimeout> | undefined;
   const flashStatus = (msg: string) => {
     status.textContent = msg;
@@ -98,42 +87,59 @@ export function createPromptMenu(options: PromptMenuOptions): {
     }, 2600);
   };
 
+  let populated = false;
+  const populateMenu = () => {
+    if (populated) return;
+    populated = true;
+    const sourceText = options.getSourceText();
+    const facts = docFacts(options.fileName, sourceText);
+    const available = promptsFor(["file", "section"], {
+      file: options.fileName,
+      docKind: facts.docKind,
+      emptySections: facts.emptySections,
+    });
+    const chosen = READ_ONLY_CHROME_PROMPTS.map((id) => available.find((p) => p.id === id)).filter(
+      (p): p is NonNullable<typeof p> => p !== undefined,
+    );
+
+    for (const def of chosen) {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = `${prefix}-item`;
+      item.setAttribute("role", "menuitem");
+      item.dataset.promptId = def.id;
+
+      const label = document.createElement("span");
+      label.className = `${prefix}-item-label`;
+      label.textContent = def.label;
+      const detail = document.createElement("span");
+      detail.className = `${prefix}-item-detail`;
+      detail.textContent = def.detail;
+      item.append(label, detail);
+
+      item.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const text = options.getSourceText();
+        const prompt = buildPrompt(def.id, {
+          file: options.fileName,
+          section: { title: options.fileName, text },
+        });
+        setOpen(false);
+        void copyToClipboard(prompt).then((ok) => {
+          flashStatus(ok ? "Prompt copied — paste into your AI agent" : "Could not access clipboard");
+        });
+      });
+      menu.append(item);
+    }
+  };
+
   const setOpen = (open: boolean, focusTrigger = false) => {
+    if (open) populateMenu();
     menu.hidden = !open;
     trigger.setAttribute("aria-expanded", String(open));
     if (!open && focusTrigger) trigger.focus();
   };
-
-  for (const def of chosen) {
-    const item = document.createElement("button");
-    item.type = "button";
-    item.className = `${prefix}-item`;
-    item.setAttribute("role", "menuitem");
-    item.dataset.promptId = def.id;
-
-    const label = document.createElement("span");
-    label.className = `${prefix}-item-label`;
-    label.textContent = def.label;
-    const detail = document.createElement("span");
-    detail.className = `${prefix}-item-detail`;
-    detail.textContent = def.detail;
-    item.append(label, detail);
-
-    item.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const text = options.getSourceText();
-      const prompt = buildPrompt(def.id, {
-        file: options.fileName,
-        section: { title: options.fileName, text },
-      });
-      setOpen(false);
-      void copyToClipboard(prompt).then((ok) => {
-        flashStatus(ok ? "Prompt copied — paste into your AI agent" : "Could not access clipboard");
-      });
-    });
-    menu.append(item);
-  }
 
   trigger.addEventListener("click", (e) => {
     e.preventDefault();

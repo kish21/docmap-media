@@ -51,6 +51,12 @@ export class OutlineState {
     this.applyCurrent(root, false);
   }
 
+  /** Fast path for outline filter typing: updates outline rows and sub-list visibility without walking `.prose`. */
+  applyOutlineFilter(root: HTMLElement, headings: readonly Heading[]): void {
+    this.applyFilter(root, headings);
+    this.applyOutlineCollapse(root);
+  }
+
   applyFilter(root: HTMLElement, headings: readonly Heading[]): void {
     const { matches, total } = filterHeadings(headings, this.query);
     const filtering = this.query.trim() !== "";
@@ -72,7 +78,7 @@ export class OutlineState {
     }
   }
 
-  applyCollapse(root: HTMLElement): void {
+  private applyOutlineCollapse(root: HTMLElement): void {
     // outline: a folded row hides its sub-list (ignored while filtering: every match must be reachable)
     const filtering = this.query.trim() !== "";
     for (const twisty of root.querySelectorAll<HTMLButtonElement>(".twisty")) {
@@ -85,6 +91,10 @@ export class OutlineState {
       const sub = row?.parentElement?.querySelector<HTMLElement>(":scope > ol");
       if (sub) sub.hidden = !open && !filtering;
     }
+  }
+
+  applyCollapse(root: HTMLElement): void {
+    this.applyOutlineCollapse(root);
     // document: hide everything after a folded heading until the next heading at the same or a higher level.
     // Headings can sit INSIDE a block (a blockquote, a list item): such a block counts as a heading of the
     // highest level it contains — it ends a fold, and folding a heading inside it folds what follows the block.

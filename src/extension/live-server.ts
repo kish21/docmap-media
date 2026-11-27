@@ -176,7 +176,8 @@ export async function startLiveServer(
   const { port } = server.address() as AddressInfo;
 
   const ping = setInterval(() => {
-    for (const set of tabs.values()) for (const res of set) res.write(": ping\n\n");
+    for (const set of tabs.values())
+      for (const res of set) if (!res.writableEnded && !res.destroyed) res.write(": ping\n\n");
   }, options.keepAliveMs);
   ping.unref();
 
@@ -184,7 +185,8 @@ export async function startLiveServer(
     base: `http://127.0.0.1:${port}/${token}`,
     notify(id) {
       const sets = id === undefined ? [...tabs.values()] : [tabs.get(id)].filter((s) => s !== undefined);
-      for (const set of sets) for (const res of set) res.write("data: change\n\n");
+      for (const set of sets)
+        for (const res of set) if (!res.writableEnded && !res.destroyed) res.write("data: change\n\n");
     },
     listeners: count,
     close() {

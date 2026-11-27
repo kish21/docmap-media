@@ -6,7 +6,7 @@ import * as esbuild from "esbuild";
 const watch = process.argv.includes("--watch");
 const tests = process.argv.includes("--tests");
 const mcpOnly = process.argv.includes("--mcp-only");
-const common = { bundle: true, sourcemap: true, logLevel: "info", target: "es2022" };
+const common = { bundle: true, sourcemap: true, minify: !watch, logLevel: "info", target: "es2022" };
 
 const mcpBuilds = [
   // 3.0 AI level 2: the local MCP server agents start themselves (Node, no vscode)

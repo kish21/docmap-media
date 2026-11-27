@@ -3,7 +3,16 @@ import { tmpdir } from "node:os";
 import * as path from "node:path";
 import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
-import { isCodeFile, isImageFile, openKind, resolveLocalTarget, rootContaining } from "./links";
+import {
+  existsConfinedPath,
+  isCodeFile,
+  isImageFile,
+  isSecretEnvFile,
+  openKind,
+  resolveConfinedFile,
+  resolveLocalTarget,
+  rootContaining,
+} from "./links";
 
 // A throwaway tree: <tmp>/ws/{README.md, docs/plan.md, docs/img/d.png, docs/escape -> <tmp>/outside}
 // Both links are folder links: on Windows a junction needs no admin rights or Developer Mode (a symlink does), and
@@ -167,5 +176,52 @@ describe("what a document may do with a resolved file", () => {
     expect(isImageFile("img/a.webp")).toBe(true);
     expect(isImageFile(".ssh/id_rsa")).toBe(false);
     expect(isImageFile("notes.md")).toBe(false);
+  });
+});
+
+describe("secret .env refusal and confined workspace resolution", () => {
+  it("refuses secret .env files while allowing template files", () => {
+    for (const secret of [".env", ".env.local", ".env.production", "sub/.env", "sub\\.env.staging"]) {
+      expect(isSecretEnvFile(secret), secret).toBe(true);
+    }
+    for (const safe of [".env.example", ".env.sample", ".env.template", "sub/.env.example", "env.ts"]) {
+      expect(isSecretEnvFile(safe), safe).toBe(false);
+    }
+  });
+
+  it("resolveConfinedFile blocks .env secrets, traversal, and symlink escapes", () => {
+    writeFileSync(join(ws, ".env"), "SECRET=1\n");
+    writeFileSync(join(ws, ".env.local"), "SECRET=2\n");
+    writeFileSync(join(ws, ".env.example"), "PORT=3000\n");
+
+    expect(resolveConfinedFile("README.md", ws)).toBe(join(ws, "README.md"));
+    expect(resolveConfinedFile(".env.example", ws)).toBe(join(ws, ".env.example"));
+    expect(resolveConfinedFile(".env", ws)).toBeUndefined();
+    expect(resolveConfinedFile(".env.local", ws)).toBeUndefined();
+    expect(resolveConfinedFile("../sibling.md", ws)).toBeUndefined();
+    expect(resolveConfinedFile("docs/escape/secret.md", ws)).toBeUndefined();
+    expect(resolveConfinedFile("docs", ws)).toBeUndefined();
+  });
+
+  it("existsConfinedPath blocks .env secrets, traversal, and symlink escapes", () => {
+    expect(existsConfinedPath(join(ws, "README.md"), ws)).toBe(true);
+    expect(existsConfinedPath(join(ws, "docs"), ws)).toBe(true);
+    expect(existsConfinedPath(join(ws, ".env.example"), ws)).toBe(true);
+    expect(existsConfinedPath(join(ws, ".env"), ws)).toBe(false);
+    expect(existsConfinedPath(join(ws, ".env.local"), ws)).toBe(false);
+    expect(existsConfinedPath(join(tmp, "sibling.md"), ws)).toBe(false);
+    expect(existsConfinedPath(join(docs, "escape", "secret.md"), ws)).toBe(false);
+  });
+
+  it("blocks .env via resolveLocalTarget and blocks credential/key files via resolveConfinedFile", () => {
+    writeFileSync(join(ws, ".npmrc"), "//registry.npmjs.org/:_authToken=secret");
+    writeFileSync(join(ws, "id_rsa"), "PRIVATE KEY");
+    writeFileSync(join(ws, "cert.pem"), "PEM");
+    expect(resolveLocalTarget(".env", ws, [ws])).toBeUndefined();
+    expect(resolveLocalTarget(".env.local", ws, [ws])).toBeUndefined();
+    expect(resolveLocalTarget(".env.example", ws, [ws])?.file).toBeDefined();
+    expect(resolveConfinedFile(".npmrc", ws)).toBeUndefined();
+    expect(resolveConfinedFile("id_rsa", ws)).toBeUndefined();
+    expect(resolveConfinedFile("cert.pem", ws)).toBeUndefined();
   });
 });

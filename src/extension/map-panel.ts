@@ -650,16 +650,10 @@ export class MapPanel {
     }
     target = Math.min(target, Math.max(0, this.document.lineCount - 1));
     const visible = vscode.window.visibleTextEditors.some((e) => e.document === this.document);
-    if (!visible && this.mode === "page") {
-      // the page IS the file's tab: a click reads on in the page (it scrolled itself); the source is one button away
-      log().debug("jump: page with no source on screen — editor left as is");
-      return;
-    }
-    const fileColumn = this.fileColumn();
-    if (!visible && fileColumn !== undefined && fileColumn === this.panel.viewColumn) {
-      // the map is covering its own file (same editor group): a click reads on in the map (it scrolled itself)
-      // rather than swapping the map out for the editor. Decided from the layout, not from how the map was opened.
-      log().debug("jump: the map covers its file — editor left as is");
+    if (!visible) {
+      // Source editor is not visible beside the preview: clicking a heading already scrolled the preview,
+      // so never force-open the raw Markdown file side-by-side.
+      log().debug("jump: source editor not visible — editor left as is");
       return;
     }
     const editor = await vscode.window.showTextDocument(this.document, {

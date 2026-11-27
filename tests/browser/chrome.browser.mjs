@@ -30,29 +30,48 @@ async function check(name, fn) {
 console.log("Chrome MV3 extension tests (dist-chrome/)");
 
 // ---------- 1. Bundle & Manifest V3 integrity ----------
-await check("MV3 manifest.json is valid, version 3.3.0, zero permissions, zero .map files", async () => {
-  const manifestPath = join(distChrome, "manifest.json");
-  assert.ok(existsSync(manifestPath), "dist-chrome/manifest.json missing — run npm run build:chrome");
-  const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-  assert.equal(manifest.manifest_version, 3);
-  assert.equal(manifest.version, "3.3.0");
-  assert.deepEqual(manifest.permissions, []);
-  const files = readdirSync(distChrome, { recursive: true, encoding: "utf8" });
-  const maps = files.filter((f) => f.endsWith(".map"));
-  assert.deepEqual(maps, [], `Found unexpected .map files: ${maps.join(", ")}`);
-  for (const required of [
-    "local.js",
-    "github.js",
-    "mermaid.js",
-    "tokens.css",
-    "styles.css",
-    "chrome-local.css",
-    "github.css",
-    join("icons", "icon128.png"),
-  ]) {
-    assert.ok(existsSync(join(distChrome, required)), `Missing ${required} in dist-chrome/`);
-  }
-});
+await check(
+  "MV3 manifest.json is valid, version 3.3.2, zero permissions, popup wired, zero .map files",
+  async () => {
+    const manifestPath = join(distChrome, "manifest.json");
+    assert.ok(existsSync(manifestPath), "dist-chrome/manifest.json missing — run npm run build:chrome");
+    const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+    assert.equal(manifest.manifest_version, 3);
+    assert.equal(manifest.version, "3.3.2");
+    assert.ok(
+      typeof manifest.description === "string" && manifest.description.length <= 132,
+      `manifest.description must be <= 132 chars for Chrome Web Store (got ${manifest.description?.length})`,
+    );
+    assert.deepEqual(manifest.permissions, []);
+    assert.equal(manifest.action?.default_popup, "popup.html");
+    // Chrome MV3 requires origin-only match patterns (path must be '/*') in web_accessible_resources
+    for (const entry of manifest.web_accessible_resources ?? []) {
+      for (const pattern of entry.matches ?? []) {
+        assert.ok(
+          pattern.endsWith("/*"),
+          `web_accessible_resources match pattern must end with /*: ${pattern}`,
+        );
+      }
+    }
+    const files = readdirSync(distChrome, { recursive: true, encoding: "utf8" });
+    const maps = files.filter((f) => f.endsWith(".map"));
+    assert.deepEqual(maps, [], `Found unexpected .map files: ${maps.join(", ")}`);
+    for (const required of [
+      "local.js",
+      "github.js",
+      "mermaid.js",
+      "popup.html",
+      "popup.js",
+      "tokens.css",
+      "styles.css",
+      "chrome-local.css",
+      "github.css",
+      join("icons", "icon128.png"),
+    ]) {
+      assert.ok(existsSync(join(distChrome, required)), `Missing ${required} in dist-chrome/`);
+    }
+  },
+);
 
 // Launch Chromium (same discovery order as tests/browser/panel.browser.mjs)
 const executablePath = [
@@ -239,6 +258,113 @@ ${Array.from({ length: 18 }, (_, i) => `Filler line ${i + 1} so the document scr
     await page.close();
   }
 
+  // ---------- 2a. Regression: heading with id='app' does not collide with #app container ----------
+  {
+    const clobberFixture = join(workDir, "clobber.md.html");
+    writeFileSync(
+      clobberFixture,
+      `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="${distUrl}/tokens.css"><link rel="stylesheet" href="${distUrl}/styles.css"><link rel="stylesheet" href="${distUrl}/chrome-local.css"></head><body><pre>${escapeHtml("# Top\n\nIntro\n\n## app\n\nBody under app heading.\n")}</pre></body></html>`,
+    );
+    const page = await browser.newPage({ viewport: { width: 1200, height: 800 } });
+    await page.goto(pathToFileURL(clobberFixture).href);
+    await page.addScriptTag({ path: join(distChrome, "local.js") });
+    await page.waitForSelector('.outline-row[data-id="app"] .outline-link');
+    await check(
+      "Local .md: heading id='app' jumps cleanly without colliding with #app container",
+      async () => {
+        await page.click('.outline-row[data-id="app"] .outline-link');
+        const current = await page.$eval('.outline-row[data-id="app"] .outline-link', (el) =>
+          el.getAttribute("aria-current"),
+        );
+        assert.equal(current, "location");
+      },
+    );
+    await page.close();
+  }
+
+  // ---------- 2a2. Tier 1 Chrome features: local images, Where this stands, Attention drawer, Slides ----------
+  {
+    const tier1Md = [
+      "# Launch Plan",
+      "",
+      "**Status:** Phase 1 is draft.",
+      "",
+      "![Local diagram](./diagram.png)",
+      "![Traversal blocked](../outside.png)",
+      "![Remote blocked](https://evil.example/pixel.png)",
+      "",
+      "## Phase 1 — Core API (built 2026-11-20)",
+      "",
+      "- [x] Ship auth endpoint",
+      "- [ ] Add rate limiting",
+      "",
+      "Should we enable strict CORS by default?",
+      "",
+      "---",
+      "",
+      "## Phase 2 — Rollout (draft)",
+      "",
+      "Ready for next sprint.",
+      "",
+    ].join("\n");
+    const tier1Fixture = join(workDir, "tier1.md.html");
+    writeFileSync(
+      tier1Fixture,
+      `<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="${distUrl}/tokens.css"><link rel="stylesheet" href="${distUrl}/styles.css"><link rel="stylesheet" href="${distUrl}/chrome-local.css"></head><body><pre>${escapeHtml(tier1Md)}</pre></body></html>`,
+    );
+    const page = await browser.newPage({ viewport: { width: 1200, height: 800 } });
+    await page.goto(pathToFileURL(tier1Fixture).href);
+    await page.addScriptTag({ path: join(distChrome, "local.js") });
+    await page.waitForSelector(".dm-standing");
+
+    await check(
+      "Local .md Tier 1: renders local relative images, blocks traversal/remote, shows Where this stands, Attention drawer & Slides",
+      async () => {
+        // Local relative image renders; traversal & remote stay blocked
+        const imgs = await page.$$eval(".prose img", (els) => els.map((e) => e.getAttribute("src") ?? ""));
+        assert.equal(imgs.length, 1, `Expected only 1 local <img>, got ${JSON.stringify(imgs)}`);
+        assert.ok(imgs[0]?.startsWith("file://") && imgs[0].endsWith("/diagram.png"));
+
+        // Where this stands card + progress stat + attention pills + outline badge
+        const statText = await page.$eval(".dm-chrome-stat", (e) => e.textContent);
+        assert.equal(statText, "1/2 done");
+        const attnBadge = await page.$eval(".dm-outline-attn", (e) => e.textContent);
+        assert.ok(attnBadge?.includes("?1") && attnBadge.includes("☐1"));
+
+        // Click Questions pill → drawer opens with the question
+        await page.click(".dm-pill-warn");
+        const qText = await page.$eval(".dm-attention-item", (e) => e.textContent);
+        assert.ok(qText?.includes("Should we enable strict CORS by default?"));
+
+        // Slides mode (2 slides separated by ---)
+        const slidesBtn = await page.$("button.dm-chrome-pill:has-text('Slides (2)')");
+        assert.ok(slidesBtn, "Expected Slides (2) button");
+        await slidesBtn.click();
+        assert.equal(await page.$eval(".dm-slides-counter", (e) => e.textContent), "Slide 1 of 2");
+        await page.keyboard.press("ArrowRight");
+        assert.equal(await page.$eval(".dm-slides-counter", (e) => e.textContent), "Slide 2 of 2");
+        await page.keyboard.press("Escape");
+        const slidesOn = await page.evaluate(() => document.body.classList.contains("dm-slides-on"));
+        assert.equal(slidesOn, false);
+
+        // Outline collapse/expand button (requires .map-root container-type: inline-size)
+        await page.click(".outline-hide");
+        assert.equal(
+          await page.$eval(".outline", (e) => getComputedStyle(e).visibility),
+          "hidden",
+          "Clicking ‹ should hide the outline",
+        );
+        await page.click(".outline-show");
+        assert.equal(
+          await page.$eval(".outline", (e) => getComputedStyle(e).visibility),
+          "visible",
+          "Clicking Contents button should show the outline again",
+        );
+      },
+    );
+    await page.close();
+  }
+
   // ---------- 2b. Enterprise guardrails: 1 MB < 1 s + > 2 MB too-large gate ----------
   {
     const oneMbSection =
@@ -419,6 +545,33 @@ ${Array.from({ length: 18 }, (_, i) => `Filler line ${i + 1} so the document scr
           document.dispatchEvent(new Event("turbo:load"));
         });
         await page.waitForFunction(() => document.querySelectorAll("[data-docmap-gh]").length === 0);
+      },
+    );
+
+    await page.close();
+  }
+
+  // ---------- 4. Toolbar popup (popup.html + popup.js) ----------
+  {
+    const page = await browser.newPage();
+    const errors = [];
+    page.on("pageerror", (err) => errors.push(err.message));
+    await page.goto(`${distUrl}/popup.html`);
+
+    await check(
+      "Toolbar popup renders file:// setup checklist, shortcuts, and copy button without errors",
+      async () => {
+        const text = await page.evaluate(() => document.body.innerText);
+        assert.ok(text.includes("Allow access to file URLs"), "Missing file:// setup instruction");
+        assert.ok(text.includes("chrome://extensions"), "Missing chrome://extensions hint");
+        assert.ok(text.includes("Quick read"), "Missing shortcuts section");
+        await page.click("#copy-ext-url");
+        await page.waitForFunction(
+          () => (document.getElementById("copy-status")?.textContent ?? "").length > 0,
+        );
+        const status = await page.textContent("#copy-status");
+        assert.ok(status && status.length > 0, "Expected copy status feedback");
+        assert.deepEqual(errors, [], `Unexpected popup errors: ${errors.join("; ")}`);
       },
     );
 

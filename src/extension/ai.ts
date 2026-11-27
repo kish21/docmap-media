@@ -3,6 +3,7 @@ import * as vscode from "vscode";
 import { answers, PROMPTS, type PromptContext, type PromptId } from "../core/agent/prompts";
 import { INTERNAL_LIMITS } from "../core/config/config";
 import { claimsIn } from "../core/trust/claims";
+import { resolveConfinedFile } from "./links";
 import { log } from "./log";
 import { writeReport } from "./reports";
 import { readConfig } from "./settings";
@@ -151,17 +152,20 @@ async function contextFor(id: PromptId, ctx: PromptContext): Promise<{ text: str
   return { text, files: files.filter((f) => f !== ctx.file) };
 }
 
-/** A workspace file's text (first folder that has it), cut at `max` characters. */
+/** A workspace file's text (first folder that has it), cut at `max` characters. Refuses `.env` secrets and symlink escapes. */
 async function readWorkspaceFile(rel: string, max: number): Promise<string | undefined> {
   if (max <= 0 || path.isAbsolute(rel) || rel.split(/[\\/]/).includes("..")) return undefined;
   for (const folder of vscode.workspace.workspaceFolders ?? []) {
+    if (folder.uri.scheme !== "file") continue;
+    const confined = resolveConfinedFile(rel.replace(/\\/g, "/"), folder.uri.fsPath);
+    if (!confined) continue;
     try {
-      const uri = vscode.Uri.joinPath(folder.uri, rel);
+      const uri = vscode.Uri.file(confined);
       const open = vscode.workspace.textDocuments.find((d) => d.uri.toString() === uri.toString());
       const body = open ? open.getText() : new TextDecoder().decode(await vscode.workspace.fs.readFile(uri));
       return body.length > max ? `${body.slice(0, max)}\n…(cut)` : body;
     } catch {
-      // not in this folder
+      // unreadable in this folder
     }
   }
   return undefined;

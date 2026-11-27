@@ -26,6 +26,15 @@ security architecture, file-access guarantees, and enterprise configuration guid
 **All features, with pictures:** <https://kish21.github.io/docmap-help/> — or in VS Code, `Ctrl+Shift+P` →
 **All-in-One Markdown Viewer: What Can docmap Do?**
 
+## Use docmap everywhere
+
+| Surface | What it does | How to start |
+| --- | --- | --- |
+| **VS Code Extension** | Same-tab preview, clickable outline, Clean View, Trust markers, Docs Inbox, Plans Dashboard, Compare, Slides, Export | Install from VS Code Marketplace / Open VSX, press `Ctrl+Alt+V` |
+| **Chrome Extension** | Read local `.md` files, `raw.githubusercontent.com`, and GitHub READMEs with Clean View, Slides, local review & highlights → Copy for AI, and Mermaid diagrams | Load Chrome MV3 extension (enable *Allow access to file URLs* for local `.md`) |
+| **Standalone MCP Server** | 6 read-only local tools (`plans`, `open_questions`, `decisions`, `search`, `outline`, `check_doc`) for Claude Desktop, Claude Code, Cursor & Antigravity — no VS Code needed | `npx -y docmap-mcp /path/to/project` |
+| **Agent Skill (`SKILL.md`)** | Teaches your AI agent to inspect outlines, search docs, and check plans/decisions before loading long files | `npx -y docmap-mcp --install-skill` |
+
 ## How to use it
 
 1. Open any Markdown (`.md`) file.

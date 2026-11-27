@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>docmap — Markdown Outline &amp; Reader</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #ffffff;
+      --surface: #f6f8fa;
+      --border: #d0d7de;
+      --fg: #1f2328;
+      --muted: #59636e;
+      --accent: #0969da;
+      --accent-fg: #ffffff;
+      --ok: #1a7f37;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0d1117;
+        --surface: #161b22;
+        --border: #30363d;
+        --fg: #e6edf3;
+        --muted: #8b949e;
+        --accent: #2f81f7;
+        --accent-fg: #ffffff;
+        --ok: #3fb950;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      width: 340px;
+      padding: 14px 16px;
+      font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--fg);
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    h1 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    h1 img {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+    }
+    .badge {
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 1px 8px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+    }
+    .card h2 {
+      margin: 0 0 6px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--muted);
+    }
+    .card p {
+      margin: 0 0 8px;
+      font-size: 12.5px;
+    }
+    .card p:last-child { margin-bottom: 0; }
+    ol {
+      margin: 0 0 8px;
+      padding-left: 18px;
+      font-size: 12.5px;
+    }
+    li { margin-bottom: 3px; }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    button {
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--accent);
+      color: var(--accent-fg);
+      border-radius: 6px;
+      padding: 5px 10px;
+      font: 600 12px/1.2 inherit;
+    }
+    button:hover { opacity: 0.92; }
+    button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .status {
+      font-size: 11.5px;
+      color: var(--ok);
+      min-height: 16px;
+    }
+    .keys {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 4px 10px;
+      font-size: 12px;
+      margin: 0;
+    }
+    kbd {
+      font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 5px;
+      justify-self: start;
+    }
+    code {
+      font: 11.5px/1.3 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0 4px;
+    }
+    .sites {
+      margin: 0;
+      padding-left: 16px;
+      font-size: 12px;
+    }
+    footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11.5px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>
+      <img src="icons/icon128.png" alt="" />
+      docmap
+    </h1>
+    <span class="badge">v3.3.2 · Offline</span>
+  </header>
+
+  <section class="card" aria-label="Local file setup">
+    <h2>Open local .md files (1-time setup)</h2>
+    <p>Chrome blocks extensions on <code>file://</code> pages until you allow it once:</p>
+    <ol>
+      <li>Open <code>chrome://extensions</code></li>
+      <li>Click <strong>Details</strong> on <strong>docmap</strong></li>
+      <li>Turn on <strong>Allow access to file URLs</strong></li>
+    </ol>
+    <div class="row">
+      <button id="copy-ext-url" type="button">Copy chrome://extensions</button>
+      <span id="copy-status" class="status" role="status" aria-live="polite"></span>
+    </div>
+  </section>
+
+  <section class="card" aria-label="Supported pages">
+    <h2>Works automatically on</h2>
+    <ul class="sites">
+      <li><code>github.com</code> README &amp; Markdown pages</li>
+      <li><code>raw.githubusercontent.com</code> &amp; Gist raw <code>.md</code></li>
+      <li>Local <code>.md</code> / <code>.markdown</code> files (after setup above)</li>
+    </ul>
+  </section>
+
+  <section class="card" aria-label="Keyboard shortcuts">
+    <h2>Keyboard shortcuts</h2>
+    <dl class="keys">
+      <kbd>/</kbd><span>Filter outline headings</span>
+      <kbd>s</kbd><span>Quick read (first paragraph per section)</span>
+      <kbd>1</kbd>–<kbd>3</kbd>, <kbd>0</kbd><span>Show heading levels (0 = all)</span>
+      <kbd>Ctrl+B</kbd><span>Hide or show outline sidebar</span>
+      <kbd>←</kbd> <kbd>→</kbd><span>Step through Slides mode</span>
+    </dl>
+  </section>
+
+  <footer>
+    <span>Zero permissions · Zero telemetry</span>
+    <a href="https://kish21.github.io/docmap-help/" target="_blank" rel="noopener noreferrer">Help &amp; VS Code</a>
+  </footer>
+
+  <script src="popup.js"></script>
+</body>
+</html>

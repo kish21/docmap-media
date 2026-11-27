@@ -2,7 +2,7 @@
   "name": "markdown-as-web-page",
   "displayName": "All-in-One Markdown Viewer",
   "description": "Your AI wrote 200 Markdown files — read the 10 that matter. Same-tab preview with a clickable table of contents, a Docs Inbox (changed, duplicates, out of date), review AI plans and send it to your own agent, themes, highlights, export. Free; collects nothing.",
-  "version": "3.3.0",
+  "version": "3.3.3",
   "publisher": "kish21",
   "license": "MIT",
   "private": false,
@@ -371,6 +371,42 @@
           ]
         },
         "when": "config.docmap.ai.tools"
+      },
+      {
+        "name": "docmap_decisions",
+        "displayName": "docmap: Decision log",
+        "toolReferenceName": "docmapDecisions",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(law)",
+        "userDescription": "Every decision ('Decision:', 'We decided:', 'We chose:'…) recorded across the workspace's Markdown docs, grouped by file with line numbers.",
+        "modelDescription": "Every decision ('Decision:', 'We decided:', 'We chose:'…) recorded across the workspace's Markdown docs, grouped by file with line numbers.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "when": "config.docmap.ai.tools"
+      },
+      {
+        "name": "docmap_search",
+        "displayName": "docmap: Search all docs",
+        "toolReferenceName": "docmapSearch",
+        "canBeReferencedInPrompt": true,
+        "icon": "$(search)",
+        "userDescription": "Search every Markdown doc in the workspace for a plain-text phrase, returning matching files, heading trails, line numbers, and snippets.",
+        "modelDescription": "Search every Markdown doc in the workspace for a plain-text phrase, returning matching files, heading trails, line numbers, and snippets.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "description": "Plain-text search phrase (at least 2 characters, case-insensitive)"
+            }
+          },
+          "required": [
+            "query"
+          ]
+        },
+        "when": "config.docmap.ai.tools"
       }
     ],
     "menus": {
@@ -613,6 +649,11 @@
       {
         "title": "All-in-One Markdown Viewer",
         "properties": {
+          "docmap.openPreviewByDefault": {
+            "type": "boolean",
+            "default": true,
+            "markdownDescription": "Open `.md` and `.markdown` files in docmap's Preview tab by default. Turn off to open Markdown files as raw text by default instead (you can always switch any tab with **✎ Source** or `Ctrl+Alt+V`)."
+          },
           "docmap.readingTools": {
             "type": "boolean",
             "default": true,
@@ -892,7 +933,7 @@
             "filenamePattern": "*.markdown"
           }
         ],
-        "priority": "option"
+        "priority": "default"
       }
     ],
     "keybindings": [

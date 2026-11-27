@@ -26,7 +26,7 @@ import { PlaceStore } from "./places";
 import { showPlansDashboard } from "./plans-panel";
 import { QuickLaunchProvider } from "./quick-launch";
 import { disposeRepoFacts } from "./repo-facts";
-import { registerReports, writeReport } from "./reports";
+import { registerReports } from "./reports";
 import { addRulePointers } from "./rule-pointers";
 import { cleanUpSavedData, clearSavedData, type SavedData, type SavedDataId } from "./saved-data";
 import { searchDocs } from "./search-docs";
@@ -98,6 +98,9 @@ export function activate(context: vscode.ExtensionContext): DocmapApi {
 
   // the editor-title buttons: map beside the file · the file's tab as its page (and back) · snapshot in the browser
   context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((e) => {
+      if (e.affectsConfiguration("docmap.openPreviewByDefault")) void syncDefaultEditorAssociation();
+    }),
     PageEditorProvider.register(context, engine),
     vscode.commands.registerCommand("docmap.openMap", openMap("beside")),
     // one toggle behind both buttons and the key (0.2.3, owner report: a second click stayed on the preview): it
@@ -353,11 +356,11 @@ export function activate(context: vscode.ExtensionContext): DocmapApi {
     vscode.commands.registerCommand("docmap.showMentions", (uri?: unknown) => docLinks.show(uri)),
     registerAiTools(inbox, engine),
     vscode.commands.registerCommand("docmap.setupAgentTools", () => setupAgentTools(context)),
-    // 3.0: every feature on one read-only page, shown in docmap's own preview (Clean view and all)
-    vscode.commands.registerCommand("docmap.help", async () => {
-      const file = vscode.Uri.joinPath(context.extensionUri, "HELP.md");
-      const text = new TextDecoder().decode(await vscode.workspace.fs.readFile(file));
-      showReport(await writeReport("Help", text));
+    // Single source of truth for help: the live docmap-help site
+    vscode.commands.registerCommand("docmap.help", async (open = true) => {
+      const url = "https://kish21.github.io/docmap-help/";
+      if (open) await vscode.env.openExternal(vscode.Uri.parse(url));
+      return url;
     }),
     vscode.commands.registerCommand("docmap.addPrompts", () => addPromptsToProject()),
     vscode.commands.registerCommand("docmap.exportHtml", exportAs(false)),
@@ -476,4 +479,24 @@ async function whatsNew(context: vscode.ExtensionContext): Promise<void> {
   );
   if (pick === finder) await vscode.commands.executeCommand("docmap.whatCanItDo");
   else if (pick) await vscode.commands.executeCommand("docmap.help");
+}
+
+/** Syncs `docmap.openPreviewByDefault` with VS Code's `workbench.editorAssociations` so users can opt back into raw text. */
+async function syncDefaultEditorAssociation(): Promise<void> {
+  const openPreview = readConfig().openPreviewByDefault;
+  const wb = vscode.workspace.getConfiguration("workbench");
+  const current = { ...(wb.get<Record<string, string>>("editorAssociations") ?? {}) };
+  let changed = false;
+  for (const pattern of ["*.md", "*.markdown"]) {
+    if (!openPreview) {
+      if (current[pattern] !== "default") {
+        current[pattern] = "default";
+        changed = true;
+      }
+    } else if (current[pattern] === "default") {
+      delete current[pattern];
+      changed = true;
+    }
+  }
+  if (changed) await wb.update("editorAssociations", current, vscode.ConfigurationTarget.Global);
 }

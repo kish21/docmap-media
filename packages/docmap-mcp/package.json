@@ -1,7 +1,7 @@
 {
   "name": "docmap-mcp",
-  "version": "3.3.0",
-  "description": "Local stdio MCP server and agent skill for reading Markdown docs (plans, open questions, outlines, repo path checks) — zero runtime dependencies, zero network, zero telemetry.",
+  "version": "3.3.2",
+  "description": "Local stdio MCP server and agent skill for reading Markdown docs (plans, open questions, decisions, full-text search, outlines, repo path checks) — zero runtime dependencies, zero network, zero telemetry.",
   "license": "MIT",
   "type": "module",
   "bin": {

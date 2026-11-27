@@ -1,12 +1,21 @@
 {
   "manifest_version": 3,
   "name": "docmap — Markdown Outline & Reader",
-  "version": "3.3.0",
-  "description": "Read local Markdown files and GitHub READMEs with a navigable outline, Quick read, themes, Mermaid diagrams, and copy-only AI prompts. Free, offline, zero telemetry.",
+  "version": "3.3.2",
+  "description": "Read local & GitHub Markdown with an outline, Clean View, Slides, AI review highlights & Mermaid. Free, offline, private.",
   "icons": {
     "16": "icons/icon128.png",
     "48": "icons/icon128.png",
     "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_title": "docmap — Markdown Outline & Reader",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon128.png",
+      "48": "icons/icon128.png",
+      "128": "icons/icon128.png"
+    }
   },
   "permissions": [],
   "content_security_policy": {
@@ -14,7 +23,15 @@
   },
   "content_scripts": [
     {
-      "matches": ["file:///*.md", "file:///*.markdown", "file:///*.MD", "file:///*.MARKDOWN"],
+      "matches": [
+        "file:///*.md",
+        "file:///*.markdown",
+        "file:///*.MD",
+        "file:///*.MARKDOWN",
+        "https://raw.githubusercontent.com/*/*.md",
+        "https://raw.githubusercontent.com/*/*.markdown",
+        "https://gist.githubusercontent.com/*/*.md"
+      ],
       "css": ["tokens.css", "styles.css", "chrome-local.css"],
       "js": ["local.js"],
       "run_at": "document_end"
@@ -29,7 +46,7 @@
   "web_accessible_resources": [
     {
       "resources": ["mermaid.js"],
-      "matches": ["file://*/*"]
+      "matches": ["file://*/*", "https://raw.githubusercontent.com/*", "https://gist.githubusercontent.com/*"]
     }
   ]
 }

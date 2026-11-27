@@ -95,7 +95,11 @@ export function safeAttrTag(state: StateInline, silent: boolean): boolean {
       const href = attrs.get("href");
       // the same check as Markdown links (the parser's validateLink); never a data: URL
       // …and normalised like a Markdown link's (percent-encoded), so both kinds reach the page in the same form
-      if (href !== undefined && state.md.validateLink(href) && !/^\s*data:/i.test(href))
+      if (
+        href !== undefined &&
+        state.md.validateLink(href) &&
+        !/^\s*data:/i.test(href.replace(/[\t\n\r]/g, ""))
+      )
         out += ` href="${escapeAttr(state.md.normalizeLink(href))}"`;
       const id = [attrs.get("id"), attrs.get("name")].find((v) => v !== undefined && ANCHOR_NAME.test(v));
       if (id !== undefined) out += ` id="${id}"`;

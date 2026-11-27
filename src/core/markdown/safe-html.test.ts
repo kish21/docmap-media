@@ -143,7 +143,12 @@ describe("pictures, anchors and links (0.0.12, owner call)", () => {
   });
 
   it("0.1.0 review: a control character cannot hide a dangerous scheme; <a name> works when id is not a plain name", () => {
-    for (const bad of ["\x01javascript:alert(1)", "\x1fcommand:x", "\x01//evil.example/share"]) {
+    for (const bad of [
+      "\x01javascript:alert(1)",
+      "\x1fcommand:x",
+      "\x01//evil.example/share",
+      "da\tta:image/png;base64,AA==",
+    ]) {
       expect(html(`<a href="${bad}">x</a>\n`), JSON.stringify(bad)).toBe("<p><a>x</a></p>\n");
     }
     expect(html('<a id="not ok" name="setup">x</a>\n')).toBe('<p><a id="setup">x</a></p>\n');

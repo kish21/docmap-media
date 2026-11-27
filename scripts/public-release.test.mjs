@@ -67,7 +67,6 @@ describe("#58: public open-source repo & reproducible CI release pipeline", () =
       expect(files).toContain("README.md");
       expect(files).toContain("SECURITY.md");
       expect(files).toContain("LICENSE");
-      expect(files).toContain("HELP.md");
       expect(files).toContain("CHANGELOG.md");
       expect(files).toContain(".github/workflows/ci.yml");
       expect(files).toContain(".github/workflows/release.yml");

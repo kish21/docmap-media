@@ -46,6 +46,10 @@ jobs:
         run: CHROMIUM_PATH=/usr/bin/google-chrome npm run check:tokens
       - name: Panel in a real browser (what the user sees; real engine output)
         run: CHROMIUM_PATH=/usr/bin/google-chrome npm run test:browser
+      - name: Build & test Chrome MV3 extension
+        run: |
+          npm run build:chrome
+          CHROMIUM_PATH=/usr/bin/google-chrome npm run test:chrome
       - name: Integration tests inside real VS Code
         run: xvfb-run -a npm run test:integration
       - name: Package the .vsix (only dist, manifest and docs may ship)

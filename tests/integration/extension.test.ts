@@ -1381,20 +1381,9 @@ suite("3.0 — open questions, my items, docs ↔ code", () => {
 });
 
 suite("3.0 — help", () => {
-  test("Help (All Features) opens every feature on a read-only page", async () => {
-    await vscode.commands.executeCommand("docmap.help");
-    const uri = vscode.Uri.from({ scheme: "docmap-report", path: "/Help.md" });
-    const docmap = await api();
-    const panel = await until("help page", () => docmap.testing.panelFor(uri), 15000);
-    const r = await until("help render", () => rendered(panel), 15000);
-    const ids = r.headings.map((h) => h.id);
-    for (const id of [
-      "3-trust-markers",
-      "5-plans-dashboard",
-      "7-compare-what-changed-on-the-page",
-      "13-tools-for-your-ai-agents",
-    ])
-      assert.ok(ids.includes(id), `missing section ${id}: ${ids.join(", ")}`);
+  test("Help (All Features) points to the docmap-help website", async () => {
+    const url = await vscode.commands.executeCommand<string>("docmap.help", false);
+    assert.strictEqual(url, "https://kish21.github.io/docmap-help/");
   });
 });
 

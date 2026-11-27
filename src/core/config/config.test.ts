@@ -14,6 +14,7 @@ describe("resolveConfig", () => {
       resolveConfig({
         updateDebounceMs: 50,
         largeFileBytes: 1024,
+        openPreviewByDefault: false,
         readingTools: true,
         inferHeadings: "always",
         rememberPlace: false,
@@ -39,6 +40,7 @@ describe("resolveConfig", () => {
     ).toEqual({
       updateDebounceMs: 50,
       largeFileBytes: 1024,
+      openPreviewByDefault: false,
       readingTools: true,
       inferHeadings: "always",
       rememberPlace: false,

@@ -171,8 +171,28 @@ function load(): Promise<Mermaid | undefined> {
       resolve(inline);
       return;
     }
+    const url = document.body.dataset.diagrams ?? "";
+    // Chrome MV3 content scripts run in an isolated world: <script> tags execute in the page's
+    // main world where the content script cannot read `window.docmapMermaid`, whereas dynamic
+    // `import()` loads the ESM bundle directly into the content script's isolated world.
+    if (url.startsWith("chrome-extension://")) {
+      import(/* @vite-ignore */ url)
+        .then((mod: { default?: unknown }) => {
+          const lib = mod?.default ?? inlineLibrary();
+          resolve(
+            lib &&
+              !(lib instanceof Element) &&
+              typeof (lib as Mermaid).render === "function" &&
+              typeof (lib as Mermaid).initialize === "function"
+              ? (lib as Mermaid)
+              : undefined,
+          );
+        })
+        .catch(() => resolve(undefined));
+      return;
+    }
     const script = document.createElement("script");
-    script.src = document.body.dataset.diagrams ?? "";
+    script.src = url;
     script.nonce = NONCE;
     script.onload = () => resolve(inlineLibrary());
     script.onerror = () => resolve(undefined);

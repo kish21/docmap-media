@@ -10,6 +10,7 @@ body {
 
 #app {
   height: 100vh;
+  container-type: inline-size;
 }
 
 .dm-chrome-bar {
@@ -132,6 +133,216 @@ body {
   color: var(--foreground);
   border: 1px solid var(--primary);
   border-radius: var(--radius);
+}
+
+.dm-chrome-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.dm-chrome-stat {
+  font-size: var(--text-caption);
+  color: var(--muted-foreground);
+  padding: 2px var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.dm-chrome-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--foreground);
+  background: var(--sidebar);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.dm-chrome-pill:hover {
+  background: var(--hover);
+}
+
+.dm-chrome-pill.is-active {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.dm-chrome-pill.dm-pill-warn {
+  border-color: var(--warning);
+}
+
+.dm-chrome-pill:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+}
+
+.dm-chrome-drawer {
+  margin: 0 0 var(--space-4);
+  padding: var(--space-3);
+  background: var(--sidebar);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.dm-drawer-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.dm-drawer-actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.dm-drawer-list {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.dm-attention-item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: var(--space-2);
+  text-align: left;
+  font: inherit;
+  font-size: var(--text-sm);
+  color: var(--foreground);
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.dm-attention-item:hover {
+  border-color: var(--primary);
+}
+
+.dm-attention-meta {
+  font-size: var(--text-caption);
+  color: var(--muted-foreground);
+}
+
+.outline-row .outline-size {
+  display: none;
+}
+
+.dm-outline-attn {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 1px 6px;
+  font-size: var(--text-caption);
+  color: var(--warning);
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  white-space: nowrap;
+}
+
+.dm-review-pop {
+  position: fixed;
+  z-index: 70;
+  display: inline-flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  background: var(--sidebar);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.dm-review-pop-btn {
+  padding: var(--space-1) var(--space-2);
+  font: inherit;
+  font-size: var(--text-caption);
+  color: var(--foreground);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.dm-review-pop-btn:hover {
+  background: var(--hover);
+}
+
+.dm-review-item {
+  padding: var(--space-2);
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.dm-review-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-1);
+}
+
+.dm-review-badge {
+  font-size: var(--text-caption);
+  font-weight: 600;
+}
+
+.dm-review-del {
+  background: transparent;
+  border: 0;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font-size: var(--text-sm);
+}
+
+.dm-review-quote {
+  margin: 0;
+  padding-left: var(--space-2);
+  border-left: 2px solid var(--border);
+  font-size: var(--text-sm);
+  color: var(--muted-foreground);
+}
+
+.dm-review-note {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-sm);
+}
+
+.dm-slides-on .prose > [data-slide-hidden] {
+  display: none;
+}
+
+.dm-slides-bar {
+  position: fixed;
+  left: 50%;
+  bottom: var(--space-4);
+  transform: translateX(-50%);
+  z-index: 65;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--sidebar);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.dm-slides-counter {
+  font-size: var(--text-sm);
+  color: var(--muted-foreground);
 }
 
 /* High-contrast OS preference: let forced-colors / system palette win */

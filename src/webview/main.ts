@@ -210,15 +210,21 @@ function render(
     }
   }
   // "you are here" pauses while the panel restores its own scroll; only the LATEST restore may end the pause
+  if (scrollFrame) {
+    cancelAnimationFrame(scrollFrame);
+    scrollFrame = 0;
+  }
   restoring = true;
   const generation = ++restoreGeneration;
   restoreAnchor(
     doc,
     anchor,
     () =>
-      requestAnimationFrame(() => {
-        if (generation === restoreGeneration) restoring = false; // after the restore's last scroll event
-      }),
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          if (generation === restoreGeneration) restoring = false; // after the restore's last scroll event
+        }),
+      ),
     () => generation !== restoreGeneration, // a reveal after this render takes over the scroll
   );
   tracker.refresh(headings, headingById);
@@ -230,8 +236,7 @@ function render(
   doc.addEventListener("scroll", onDocumentScroll, { passive: true });
   filter?.addEventListener("input", () => {
     state.query = filter.value;
-    state.apply(root, headings);
-    tracker.refresh(headings, headingById);
+    state.applyOutlineFilter(root, headings);
   });
 }
 

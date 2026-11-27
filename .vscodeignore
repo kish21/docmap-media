@@ -23,13 +23,14 @@ lefthook.yml
 tsconfig*.json
 vitest.config.mts
 package-lock.json
-# every Markdown file stays out, except the two the Marketplace listing shows, and HELP.md ("Help (All Features)" opens it)
+# every Markdown file stays out, except the two the Marketplace listing shows
 *.md
 !README.md
 !CHANGELOG.md
-!HELP.md
 # icon sources and repo README screenshot: the .vsix ships only the built font and the app icon (npm run icons)
 media/icons/**
 screenshot.png
 # source maps only help us debug; users never need them (about 1.4 MB unpacked). The local build keeps them.
 dist/*.map
+# never leak Chrome extension release zips into the VS Code .vsix
+dist/*.zip

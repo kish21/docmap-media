@@ -14,4 +14,10 @@ describe("Run in Terminal (2026-11-22 review)", () => {
     expect(shellCommand("npm install\nnpm run build\n")).toBe("npm install\nnpm run build");
     expect(shellCommand("  \n")).toBe("");
   });
+
+  it("splits bare carriage returns and strips ANSI escape sequences and C0 control chars", () => {
+    expect(shellCommand("echo safe\recho evil")).toBe("echo safe\necho evil");
+    expect(shellCommand("echo \x1b[31mred\x1b[0m\x1b[201~; rm -rf /")).toBe("echo red; rm -rf /");
+    expect(shellCommand("echo hi\x03\x08\x00there")).toBe("echo hithere");
+  });
 });

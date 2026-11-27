@@ -64,6 +64,7 @@ describe("extension manifest", () => {
     ]);
     const keys = (title: string) => Object.keys(sections.find((s) => s.title === title)?.properties ?? {});
     expect(keys("All-in-One Markdown Viewer")).toEqual([
+      "docmap.openPreviewByDefault",
       "docmap.readingTools",
       "docmap.writingHelpers",
       "docmap.codeLens",
@@ -79,10 +80,10 @@ describe("extension manifest", () => {
     expect(sections.flatMap((s) => Object.keys(s.properties))).not.toContain("docmap.updateDebounceMs");
   });
 
-  it("0.2.0: the preview can be the file's own tab — offered, never forced on every .md file", () => {
+  it("3.3.3: the preview is the default editor for .md and .markdown files (with ✎ Source and openPreviewByDefault to switch back)", () => {
     const [editor] = manifest.contributes.customEditors;
     expect(editor.viewType).toBe("docmap.page");
-    expect(editor.priority).toBe("option");
+    expect(editor.priority).toBe("default");
     expect(editor.selector.map((s: { filenamePattern: string }) => s.filenamePattern)).toEqual([
       "*.md",
       "*.markdown",
@@ -110,17 +111,6 @@ describe("extension manifest", () => {
 });
 
 describe("3.0 help and tour", () => {
-  it("every contents link in HELP.md reaches a heading (the help page's own links work)", async () => {
-    const { createMarkdownItEngine } = await import("../core/markdown/markdown-it-engine");
-    const help = readFileSync("HELP.md", "utf8");
-    const parsed = createMarkdownItEngine().parse(help, 0, {});
-    expect(parsed.ok).toBe(true);
-    const ids = new Set(parsed.ok ? parsed.document.headings.map((h) => h.id) : []);
-    const links = [...help.matchAll(/\]\(#([^)]+)\)/g)].map((m) => m[1]);
-    expect(links.length).toBeGreaterThan(10);
-    for (const l of links) expect(ids, l).toContain(l);
-  });
-
   it("the Get Started tour: each step's page exists and each button runs a real command", () => {
     const [tour] = manifest.contributes.walkthroughs;
     const commands = new Set(manifest.contributes.commands.map((c: { command: string }) => c.command));

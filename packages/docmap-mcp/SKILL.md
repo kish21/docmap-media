@@ -1,6 +1,6 @@
 ---
 name: docmap
-description: Navigate and audit a repository's Markdown docs via docmap's local stdio MCP tools (docmap_outline, docmap_plans, docmap_open_questions, docmap_check_doc) before reading long files.
+description: Navigate, search, and audit a repository's Markdown docs via docmap's local stdio MCP tools (docmap_outline, docmap_plans, docmap_open_questions, docmap_decisions, docmap_search, docmap_check_doc) before reading long files.
 ---
 
 # docmap — Markdown Navigation & Audit Skill
@@ -14,8 +14,10 @@ All tools are **read-only**, run locally over stdio, make **zero network request
 | Tool | Input | When to use |
 |---|---|---|
 | `docmap_outline` | `{ "file": "relative/path.md" }` | **Before reading any long Markdown file.** Returns headings with levels and 1-based line numbers, plus open tasks and open questions so you can read only the relevant line range. |
+| `docmap_search` | `{ "query": "phrase" }` | **When looking for where a topic, setting, or term is documented.** Case-insensitive plain-text search across all Markdown docs with heading trails and 1-based line numbers. |
 | `docmap_plans` | `{}` | **When asked about project status, roadmap, or plans.** Scans Markdown docs and returns one consolidated table: progress, status, owners, dates/overdue items, open questions, risks, decisions, and what needs attention. |
 | `docmap_open_questions` | `{}` | **When looking for blockers, decisions needed, or unresolved items.** Lists every open question across all Markdown docs with file paths, line numbers, and named people. |
+| `docmap_decisions` | `{}` | **When checking past architecture or product decisions.** Extracts every `Decision:`, `We decided:`, or `We chose:` line across all Markdown docs with file paths and line numbers. |
 | `docmap_check_doc` | `{ "file": "relative/path.md" }` | **When verifying whether a doc is up to date with the codebase.** Checks every file, folder, and path named in backticks against the repository and lists the ones that no longer exist. |
 
 ## Recommended Workflow
@@ -23,10 +25,12 @@ All tools are **read-only**, run locally over stdio, make **zero network request
 1. **Before reading a long Markdown file (> ~100 lines):**
    - Call `docmap_outline` with the workspace-relative path (e.g. `docs/architecture.md`).
    - Use the returned heading line numbers to read only the section(s) you need.
-2. **To get oriented in a repository with many docs:**
+2. **To find where a topic is covered across many docs:**
+   - Call `docmap_search` with a short phrase (at least 2 characters) to get exact file paths, heading trails, and line numbers.
+3. **To get oriented in a repository with many docs:**
    - Call `docmap_plans` to see active plans, completion status, and overdue or stale items.
-   - Call `docmap_open_questions` to surface unresolved questions across the project.
-3. **Before trusting or updating a design doc or spec:**
+   - Call `docmap_open_questions` and `docmap_decisions` to surface unresolved blockers and locked choices.
+4. **Before trusting or updating a design doc or spec:**
    - Call `docmap_check_doc` on the file to find broken or moved code paths it still references.
 
 ## Constraints
